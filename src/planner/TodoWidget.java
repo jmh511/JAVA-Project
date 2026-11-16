@@ -5,7 +5,6 @@ import java.awt.Font;
 import java.awt.font.TextAttribute;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -42,14 +41,6 @@ public class TodoWidget extends WidgetPanel {
         refresh();
     }
 
-    @Override
-    public List<JMenuItem> createMenuItems() {
-        JMenuItem add = new JMenuItem("Add to-do...");
-        add.addActionListener(e -> TodoDialog.showAdd(this, store));
-        List<JMenuItem> items = new ArrayList<>();
-        items.add(add);
-        return items;
-    }
 
     @Override
     protected void refresh() {

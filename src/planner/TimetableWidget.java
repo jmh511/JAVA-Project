@@ -79,15 +79,13 @@ public class TimetableWidget extends WidgetPanel {
 
     @Override
     public List<JMenuItem> createMenuItems() {
+        // "Add event..." is already in the common part of the menu (BoardPanel).
         List<JMenuItem> items = new ArrayList<>();
-        JMenuItem add = new JMenuItem("Add event...");
-        add.addActionListener(e -> EventDialog.showAdd(this, store, LocalDate.now(), Times.nextHalfHour()));
-        JMenuItem settings = new JMenuItem("Settings...");
-        settings.addActionListener(e -> TimetableSettingsDialog.show(this, store));
+        JMenuItem range = new JMenuItem("Time range...");
+        range.addActionListener(e -> TimetableSettingsDialog.show(this, store));
         JMenuItem now = new JMenuItem("Scroll to now");
         now.addActionListener(e -> scrollToNow());
-        items.add(add);
-        items.add(settings);
+        items.add(range);
         items.add(now);
         return items;
     }
