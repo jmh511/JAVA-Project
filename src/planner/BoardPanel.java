@@ -14,12 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.swing.ButtonGroup;
-import javax.swing.JMenu;
 import javax.swing.JMenuItem;
-import javax.swing.JRadioButtonMenuItem;
-import javax.swing.event.MenuEvent;
-import javax.swing.event.MenuListener;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.Timer;
@@ -168,6 +163,10 @@ public class BoardPanel extends JPanel {
 
     public BoardFrame getFrame() {
         return frame;
+    }
+
+    public DataStore getStore() {
+        return store;
     }
 
     public List<WidgetPanel> getWidgets() {
@@ -509,8 +508,6 @@ public class BoardPanel extends JPanel {
         menu.add(addTodo);
         menu.addSeparator();
         menu.add(edit);
-        menu.add(createSizeMenu());
-        menu.add(createOpacityMenu());
         JMenuItem settings = new JMenuItem("Settings...");
         settings.addActionListener(e -> SettingsDialog.show(frame, store));
         menu.add(settings);
@@ -533,94 +530,5 @@ public class BoardPanel extends JPanel {
             w.setSolidText(solid);
         }
         repaint();
-    }
-
-    /** "Widget opacity" submenu: 100% down to 30% in 10% steps, plus the text option. */
-    public JMenu createOpacityMenu() {
-        JMenu menu = new JMenu("Widget opacity");
-        List<JRadioButtonMenuItem> items = new ArrayList<>();
-        ButtonGroup group = new ButtonGroup();
-        for (int p = 100; p >= 30; p -= 10) {
-            int percent = p;
-            JRadioButtonMenuItem item = new JRadioButtonMenuItem(percent + "%");
-            item.addActionListener(e -> setWidgetOpacity(percent));
-            item.putClientProperty("percent", percent);
-            group.add(item);
-            items.add(item);
-            menu.add(item);
-        }
-
-        // Text: always fully visible, or fade together with the widget.
-        menu.addSeparator();
-        ButtonGroup textGroup = new ButtonGroup();
-        JRadioButtonMenuItem solid = new JRadioButtonMenuItem("Text: always 100% (sharp)");
-        JRadioButtonMenuItem follow = new JRadioButtonMenuItem("Text: same as widget");
-        solid.addActionListener(e -> setSolidText(true));
-        follow.addActionListener(e -> setSolidText(false));
-        textGroup.add(solid);
-        textGroup.add(follow);
-        menu.add(solid);
-        menu.add(follow);
-
-        menu.addMenuListener(new MenuListener() {
-            @Override
-            public void menuSelected(MenuEvent e) {
-                for (JRadioButtonMenuItem item : items) {
-                    item.setSelected((Integer) item.getClientProperty("percent") == store.getWidgetOpacity());
-                }
-                solid.setSelected(store.isSolidText());
-                follow.setSelected(!store.isSolidText());
-            }
-
-            @Override
-            public void menuDeselected(MenuEvent e) {
-            }
-
-            @Override
-            public void menuCanceled(MenuEvent e) {
-            }
-        });
-        return menu;
-    }
-
-    /** "Board size" submenu: fixed sizes, plus "fit free desktop space" in desktop mode. */
-    public JMenu createSizeMenu() {
-        JMenu menu = new JMenu("Board size");
-        List<JRadioButtonMenuItem> items = new ArrayList<>();
-        ButtonGroup group = new ButtonGroup();
-        for (int[] s : SIZE_PRESETS) {
-            JRadioButtonMenuItem item = new JRadioButtonMenuItem(
-                    s[0] + " x " + s[1] + " cells  (" + s[0] * Theme.cellW() + " x " + s[1] * Theme.cellH() + ")");
-            item.putClientProperty("size", s);
-            item.addActionListener(e -> frame.changeBoardSize(s[0], s[1]));
-            group.add(item);
-            items.add(item);
-            menu.add(item);
-        }
-        menu.addSeparator();
-        JMenuItem fit = new JMenuItem("Largest size that fits without covering files");
-        fit.addActionListener(e -> frame.fitBoardToFreeSpace(true));
-        menu.add(fit);
-
-        // Show the current size as selected each time the submenu opens.
-        menu.addMenuListener(new MenuListener() {
-            @Override
-            public void menuSelected(MenuEvent e) {
-                for (JRadioButtonMenuItem item : items) {
-                    int[] s = (int[]) item.getClientProperty("size");
-                    item.setSelected(s[0] == cols && s[1] == rows);
-                }
-                fit.setEnabled(frame.isEmbedded());
-            }
-
-            @Override
-            public void menuDeselected(MenuEvent e) {
-            }
-
-            @Override
-            public void menuCanceled(MenuEvent e) {
-            }
-        });
-        return menu;
     }
 }

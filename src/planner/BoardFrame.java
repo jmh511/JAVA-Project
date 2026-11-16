@@ -359,12 +359,6 @@ public class BoardFrame extends JFrame {
 
     // ------------------------------------------------------------------ board size
 
-    /** Changes the board size (in cells) from the menu, then keeps it off the desktop icons. */
-    public void changeBoardSize(int cols, int rows) {
-        leaveDesktopGrid();
-        resizeBoard(cols, rows, true);
-    }
-
     // ------------------------------------------------------------------ desktop grid
 
     public boolean isGridMatched() {

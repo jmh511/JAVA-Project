@@ -76,14 +76,22 @@ public class SettingsDialog extends JDialog {
     }
 
     private JPanel gridSection() {
-        JPanel p = section("Desktop grid");
-        JLabel help = Theme.label("<html>Cells become the same size as the desktop icon grid, and the board<br>"
+        JPanel p = section("Board");
+        JButton match = new JButton("Match this PC's desktop grid");
+        JLabel matchHelp = Theme.label("<html>Cells become the same size as the desktop icon grid, and the board<br>"
                 + "covers the whole desktop. Press again after moving to another PC<br>"
                 + "or changing the display scale.</html>", Theme.SMALL, Theme.TEXT_MUTED);
-        JButton match = new JButton("Match this PC's desktop grid");
-        match.setEnabled(frame.isEmbedded());
-        if (!frame.isEmbedded()) {
-            match.setToolTipText("Needs desktop mode (Windows, JDK 22 or newer)");
+        JButton fitFree = new JButton("Fit board between desktop icons");
+        JLabel fitHelp = Theme.label("<html>Normal 80 x 80 cells; the largest board that covers no icons,<br>"
+                + "moved to that free space.</html>", Theme.SMALL, Theme.TEXT_MUTED);
+        JLabel resizeHelp = Theme.label("<html>To change the size by hand: Edit layout, then drag the board's edge.</html>",
+                Theme.SMALL, Theme.TEXT_MUTED);
+
+        for (JButton b : new JButton[]{match, fitFree}) {
+            b.setEnabled(frame.isEmbedded());
+            if (!frame.isEmbedded()) {
+                b.setToolTipText("Needs desktop mode (Windows, JDK 22 or newer)");
+            }
         }
         match.addActionListener(e -> {
             String problem = frame.matchDesktopGrid();
@@ -93,11 +101,23 @@ public class SettingsDialog extends JDialog {
                 JOptionPane.showMessageDialog(this, problem, "Desktop grid", JOptionPane.INFORMATION_MESSAGE);
             }
         });
+        fitFree.addActionListener(e -> {
+            frame.fitBoardToFreeSpace(true);
+            updateGridStatus();
+            fit();
+        });
+
         add(p, gridStatus);
-        add(p, Box.createVerticalStrut(6));
+        add(p, Box.createVerticalStrut(8));
         add(p, match);
-        add(p, Box.createVerticalStrut(6));
-        add(p, help);
+        add(p, Box.createVerticalStrut(3));
+        add(p, matchHelp);
+        add(p, Box.createVerticalStrut(10));
+        add(p, fitFree);
+        add(p, Box.createVerticalStrut(3));
+        add(p, fitHelp);
+        add(p, Box.createVerticalStrut(10));
+        add(p, resizeHelp);
         return p;
     }
 

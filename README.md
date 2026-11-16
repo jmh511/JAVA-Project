@@ -28,7 +28,9 @@
 
 ## 사용법
 
-- 위젯 위에서 **오른쪽 클릭**: 일정/할 일 추가, Edit layout, Board size, Widget opacity, Settings, Exit
+- 위젯 위에서 **오른쪽 클릭**: 일정/할 일 추가, Edit layout, Settings, Exit
+- 보드 크기: Edit layout에서 보드 테두리를 끌어 조절 (Settings에서 바탕화면 격자 맞춤 / 아이콘 사이 빈 공간에 맞춤)
+- 위젯 투명도, 글씨 선명도: Settings
 - 작업 표시줄 알림 영역 아이콘 메뉴로도 같은 기능 사용 가능
 - 편집 모드 종료: **Done** 버튼
 

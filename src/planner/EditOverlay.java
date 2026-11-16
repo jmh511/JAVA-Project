@@ -346,8 +346,6 @@ public class EditOverlay extends JComponent {
             add.add(item);
         }
         menu.add(add);
-        menu.add(board.createSizeMenu());
-        menu.add(board.createOpacityMenu());
         if (w != null) {
             JMenuItem remove = new JMenuItem("Remove " + w.getType().getTitle() + " widget");
             remove.addActionListener(ev -> {
@@ -356,6 +354,10 @@ public class EditOverlay extends JComponent {
             });
             menu.add(remove);
         }
+        menu.addSeparator();
+        JMenuItem settings = new JMenuItem("Settings...");
+        settings.addActionListener(ev -> SettingsDialog.show(board.getFrame(), board.getStore()));
+        menu.add(settings);
         menu.addSeparator();
         JMenuItem done = new JMenuItem("Done");
         done.addActionListener(ev -> board.setEditMode(false));
