@@ -1,0 +1,17 @@
+# Build output (run.bat compiles into out/)
+out/
+*.class
+
+# Personal planner data (events, to-dos, layout) - created on first run
+data/
+
+# IDE / OS files
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+bin/
+Thumbs.db
+desktop.ini
