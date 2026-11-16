@@ -33,24 +33,31 @@ public abstract class FormDialog extends JDialog {
         super(owner, title, ModalityType.APPLICATION_MODAL);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
-        JButton ok = new JButton("Save");
+        JButton ok = Theme.primaryButton("Save");
         JButton cancel = new JButton("Cancel");
+        cancel.setFont(Theme.BODY);
         ok.addActionListener(e -> onSave());
         cancel.addActionListener(e -> dispose());
 
-        JPanel rightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        JPanel rightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        rightButtons.setOpaque(false);
+        leftButtons.setOpaque(false);
+        form.setOpaque(false);
         rightButtons.add(cancel);
         rightButtons.add(ok);
         JPanel buttons = new JPanel(new BorderLayout());
+        buttons.setOpaque(false);
         buttons.add(leftButtons, BorderLayout.WEST);
         buttons.add(rightButtons, BorderLayout.EAST);
 
         JPanel south = new JPanel(new BorderLayout(0, 6));
+        south.setOpaque(false);
         south.add(errorLabel, BorderLayout.NORTH);
         south.add(buttons, BorderLayout.SOUTH);
 
         JPanel root = new JPanel(new BorderLayout(0, 8));
-        root.setBorder(new EmptyBorder(14, 16, 12, 16));
+        root.setBackground(Theme.CARD_BG); // same white as the widget cards
+        root.setBorder(new EmptyBorder(16, 18, 14, 18));
         root.add(form, BorderLayout.CENTER);
         root.add(south, BorderLayout.SOUTH);
         setContentPane(root);
@@ -73,12 +80,16 @@ public abstract class FormDialog extends JDialog {
         c.anchor = GridBagConstraints.WEST;
         if (label != null) {
             c.gridx = 0;
-            form.add(new JLabel(label), c);
+            form.add(Theme.label(label, Theme.BODY, Theme.TEXT_MUTED), c);
         }
         c.gridx = 1;
         c.weightx = 1;
         c.fill = GridBagConstraints.HORIZONTAL;
         c.insets = new Insets(3, 0, 3, 0);
+        field.setFont(field instanceof javax.swing.JCheckBox ? Theme.SMALL : Theme.BODY);
+        if (field instanceof JComponent && !(field instanceof javax.swing.JTextField) && !(field instanceof javax.swing.JSpinner) && !(field instanceof javax.swing.JComboBox)) {
+            ((JComponent) field).setOpaque(false);
+        }
         form.add(field, c);
     }
 

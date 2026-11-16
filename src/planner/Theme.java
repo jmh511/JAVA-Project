@@ -88,6 +88,45 @@ public final class Theme {
         return b;
     }
 
+    /** Filled blue button for the main action of a window (one per window). */
+    public static JButton primaryButton(String text) {
+        JButton b = new JButton(text);
+        b.setFont(BODY.deriveFont(Font.BOLD));
+        b.setForeground(Color.WHITE);
+        b.setBackground(ACCENT);
+        // Paint our own flat background (the Windows look and feel ignores setBackground).
+        b.setContentAreaFilled(false);
+        b.setBorderPainted(false);
+        b.setOpaque(true);
+        b.setFocusPainted(false);
+        b.setBorder(new javax.swing.border.EmptyBorder(6, 16, 6, 16));
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+    /** Text field that shows a grey example text while it is empty. */
+    public static javax.swing.JTextField hintField(String hint, int columns) {
+        javax.swing.JTextField f = new javax.swing.JTextField(columns) {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                super.paintComponent(g);
+                if (getText().isEmpty()) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                    g2.setColor(TEXT_MUTED);
+                    g2.setFont(getFont());
+                    java.awt.Insets in = getInsets();
+                    int y = in.top + (getHeight() - in.top - in.bottom - g2.getFontMetrics().getHeight()) / 2
+                            + g2.getFontMetrics().getAscent();
+                    g2.drawString(hint, in.left + 2, y);
+                    g2.dispose();
+                }
+            }
+        };
+        f.setFont(BODY);
+        return f;
+    }
+
     public static Color withAlpha(Color c, int alpha) {
         return new Color(c.getRed(), c.getGreen(), c.getBlue(), alpha);
     }
