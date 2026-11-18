@@ -92,7 +92,7 @@ public class ChecklistWidget extends WidgetPanel {
             setBorder(new EmptyBorder(3, 4, 2, 2));
 
             JLabel header = Theme.label(headerFor(date), today ? Theme.SMALL.deriveFont(java.awt.Font.BOLD) : Theme.SMALL,
-                    today ? Theme.ACCENT : Theme.TEXT_MUTED);
+                    today ? Theme.wAccent : Theme.wMuted);
             add(header, BorderLayout.NORTH);
 
             JPanel items = new JPanel();
@@ -105,13 +105,14 @@ public class ChecklistWidget extends WidgetPanel {
             itemsHolder.add(items, BorderLayout.NORTH);
             JScrollPane scroll = new JScrollPane(itemsHolder);
             scroll.setBorder(null);
+            Theme.styleScroll(scroll);
             scroll.setOpaque(false);
             scroll.getViewport().setOpaque(false);
             scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
             scroll.getVerticalScrollBar().setUnitIncrement(10);
             add(scroll, BorderLayout.CENTER);
 
-            JButton addButton = Theme.flatButton(days == 7 ? "+ Add" : "+ Add item");
+            JButton addButton = Theme.widgetButton(days == 7 ? "+ Add" : "+ Add item");
             addButton.setHorizontalAlignment(JButton.LEFT);
             addButton.addActionListener(e -> {
                 String title = JOptionPane.showInputDialog(ChecklistWidget.this,
@@ -126,10 +127,11 @@ public class ChecklistWidget extends WidgetPanel {
 
         private Component createItem(ChecklistItem item) {
             JCheckBox cb = new JCheckBox(item.getTitle(), item.isDone());
+            Theme.styleCheck(cb, item.isDone());
             cb.setOpaque(false);
             cb.setFocusPainted(false);
             cb.setFont(Theme.SMALL);
-            cb.setForeground(item.isDone() ? Theme.TEXT_MUTED : Theme.TEXT);
+            cb.setForeground(item.isDone() ? Theme.wMuted : Theme.wText);
             cb.setToolTipText(item.getTitle());
             cb.setBorder(new EmptyBorder(1, 0, 1, 0));
             cb.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -148,7 +150,7 @@ public class ChecklistWidget extends WidgetPanel {
             if (today && days > 1) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Theme.ACCENT_SOFT);
+                g2.setColor(Theme.wAccentSoft);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
                 g2.dispose();
             }

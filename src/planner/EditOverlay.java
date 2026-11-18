@@ -55,6 +55,9 @@ public class EditOverlay extends JComponent {
     private Rectangle previewCells;
     private boolean previewValid;
 
+    /** True while a dragged widget is held over the dock (release removes it). */
+    private boolean overDock;
+
     // Whole board window being moved.
     private Point windowPress;
     private Point windowStart;
@@ -122,7 +125,7 @@ public class EditOverlay extends JComponent {
                     board.getFrame().setLocation(windowStart.x + now.x - windowPress.x,
                             windowStart.y + now.y - windowPress.y);
                 } else if (target != null) {
-                    dragWidget(e.getPoint());
+                    dragWidget(e.getPoint(), e.getLocationOnScreen());
                 }
             }
 
@@ -256,7 +259,7 @@ public class EditOverlay extends JComponent {
 
     // ------------------------------------------------------------------ widgets
 
-    private void dragWidget(Point p) {
+    private void dragWidget(Point p, Point screen) {
         int dx = p.x - pressPoint.x;
         int dy = p.y - pressPoint.y;
         int boardW = board.getCols() * Theme.cellW();
@@ -274,14 +277,30 @@ public class EditOverlay extends JComponent {
             int y = clamp(startBounds.y + dy, 0, boardH - startBounds.height);
             target.setLocation(x, y);
         }
-        previewCells = snap(target.getBounds());
-        previewValid = board.fits(previewCells, target);
+        // Held over the dock: release will remove the widget.
+        WidgetDock dock = board.getDock();
+        overDock = dock != null && dock.containsScreenPoint(screen);
+        if (dock != null) {
+            dock.setRemoveHover(overDock);
+        }
+        previewCells = overDock ? null : snap(target.getBounds());
+        previewValid = previewCells != null && board.fits(previewCells, target);
         repaint();
     }
 
     /** Slides the widget into its snapped cells (or back, if they are taken). */
     private void releaseWidget() {
         WidgetPanel w = target;
+        if (overDock) {
+            // Dropped on the dock: remove it from the board (its data stays).
+            overDock = false;
+            target = null;
+            previewCells = null;
+            board.getDock().setRemoveHover(false);
+            board.removeWidget(w);
+            repaint();
+            return;
+        }
         Rectangle snapped = snap(w.getBounds());
         Rectangle cells = board.fits(snapped, w) ? snapped : startCells;
         target = null;
@@ -298,7 +317,52 @@ public class EditOverlay extends JComponent {
         });
     }
 
-    private static Rectangle cellsToPixels(Rectangle cells) {
+    // ------------------------------------------------------------------ drop from the dock
+
+    /** Preview where a widget dragged from the dock would go (blue = fits, red = no room). */
+    public void showDropPreview(WidgetType type, Point boardPoint) {
+        if (boardPoint == null) {
+            clearDropPreview();
+            return;
+        }
+        Rectangle cells = dropCells(type, boardPoint);
+        previewCells = cells != null ? cells : candidate(type, boardPoint, type.getDefaultCols(), type.getDefaultRows());
+        previewValid = cells != null;
+        repaint();
+    }
+
+    public void clearDropPreview() {
+        previewCells = null;
+        repaint();
+    }
+
+    /**
+     * Cells for a widget dropped at a board point (centered under the cursor): default size if it
+     * fits there, otherwise the minimum size, otherwise null.
+     */
+    public Rectangle dropCells(WidgetType type, Point boardPoint) {
+        if (boardPoint == null) {
+            return null;
+        }
+        int[][] sizes = {{type.getDefaultCols(), type.getDefaultRows()}, {type.getMinCols(), type.getMinRows()}};
+        for (int[] s : sizes) {
+            Rectangle r = candidate(type, boardPoint, s[0], s[1]);
+            if (r.width <= board.getCols() && r.height <= board.getRows() && board.fits(r, null)) {
+                return r;
+            }
+        }
+        return null;
+    }
+
+    private Rectangle candidate(WidgetType type, Point p, int w, int h) {
+        w = Math.min(w, board.getCols());
+        h = Math.min(h, board.getRows());
+        int col = clamp(p.x / Theme.cellW() - (w - 1) / 2, 0, board.getCols() - w);
+        int row = clamp(p.y / Theme.cellH() - (h - 1) / 2, 0, board.getRows() - h);
+        return new Rectangle(col, row, w, h);
+    }
+
+    public static Rectangle cellsToPixels(Rectangle cells) {
         return new Rectangle(cells.x * Theme.cellW() + Theme.GAP, cells.y * Theme.cellH() + Theme.GAP,
                 cells.width * Theme.cellW() - 2 * Theme.GAP, cells.height * Theme.cellH() - 2 * Theme.GAP);
     }
@@ -328,24 +392,10 @@ public class EditOverlay extends JComponent {
 
     private void showMenu(MouseEvent e) {
         Point p = e.getPoint();
-        Point cell = new Point(p.x / Theme.cellW(), p.y / Theme.cellH());
         WidgetPanel w = board.widgetAt(p);
 
         JPopupMenu menu = new JPopupMenu();
-        JMenu add = new JMenu("Add widget");
-        for (WidgetType t : WidgetType.values()) {
-            JMenuItem item = new JMenuItem(t.getTitle() + "  (min " + t.getMinCols() + "x" + t.getMinRows() + ")");
-            item.addActionListener(ev -> {
-                if (!board.addWidgetNear(t, w == null ? cell : null)) {
-                    JOptionPane.showMessageDialog(board, "There is no free space for the " + t.getTitle()
-                            + " widget.\nMake the board bigger, or move or remove another widget first.",
-                            "Add widget", JOptionPane.INFORMATION_MESSAGE);
-                }
-                repaint();
-            });
-            add.add(item);
-        }
-        menu.add(add);
+        // Widgets are added by dragging them from the dock at the bottom of the screen.
         if (w != null) {
             JMenuItem remove = new JMenuItem("Remove " + w.getType().getTitle() + " widget");
             remove.addActionListener(ev -> {
@@ -431,8 +481,8 @@ public class EditOverlay extends JComponent {
         }
 
         // Hint at the bottom.
-        String hint = "Drag widget to move  /  drag its corner to resize  /  drag board edge to resize board  /  "
-                + "drag empty space to move board";
+        String hint = "Add: drag an icon from the dock  /  Remove: drag a widget onto the dock  /  "
+                + "Resize: drag a corner or the board edge";
         g2.setFont(Theme.SMALL);
         FontMetrics fm = g2.getFontMetrics();
         int tw = fm.stringWidth(hint) + 20;

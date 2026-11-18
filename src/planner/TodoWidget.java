@@ -28,7 +28,7 @@ public class TodoWidget extends WidgetPanel {
 
     public TodoWidget(DataStore store) {
         super(WidgetType.TODO, store);
-        JButton add = Theme.flatButton("+");
+        JButton add = Theme.widgetButton("+");
         add.setFont(Theme.TITLE);
         add.setToolTipText("Add a to-do");
         add.addActionListener(e -> TodoDialog.showAdd(this, store));
@@ -47,7 +47,7 @@ public class TodoWidget extends WidgetPanel {
         body.removeAll();
         List<Todo> todos = store.getTodos();
         if (todos.isEmpty()) {
-            body.add(Theme.label("No to-dos. Click + to add.", Theme.SMALL, Theme.TEXT_MUTED), BorderLayout.NORTH);
+            body.add(Theme.label("No to-dos. Click + to add.", Theme.SMALL, Theme.wMuted), BorderLayout.NORTH);
             return;
         }
         JPanel list = new JPanel();
@@ -60,6 +60,7 @@ public class TodoWidget extends WidgetPanel {
         holder.add(list, BorderLayout.NORTH);
         JScrollPane scroll = new JScrollPane(holder);
         scroll.setBorder(null);
+        Theme.styleScroll(scroll);
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(false);
         scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -73,6 +74,7 @@ public class TodoWidget extends WidgetPanel {
         row.setBorder(new EmptyBorder(1, 0, 1, 2));
 
         JCheckBox cb = new JCheckBox(t.getTitle(), t.isDone());
+        Theme.styleCheck(cb, t.isDone());
         cb.setOpaque(false);
         cb.setFocusPainted(false);
         cb.setBorder(new EmptyBorder(0, 0, 0, 0));
@@ -81,7 +83,7 @@ public class TodoWidget extends WidgetPanel {
             font = font.deriveFont(Collections.singletonMap(TextAttribute.STRIKETHROUGH, TextAttribute.STRIKETHROUGH_ON));
         }
         cb.setFont(font);
-        cb.setForeground(t.isDone() ? Theme.TEXT_MUTED : Theme.TEXT);
+        cb.setForeground(t.isDone() ? Theme.wMuted : Theme.wText);
         cb.setToolTipText(t.getTitle() + "  (due " + t.getDue().format(Times.DOW_MD) + ")");
         cb.addActionListener(e -> store.setTodoDone(t, cb.isSelected()));
         row.add(cb, BorderLayout.CENTER);
@@ -91,7 +93,7 @@ public class TodoWidget extends WidgetPanel {
             String dday = t.isDone() ? "done" : left == 0 ? "D-day" : left > 0 ? "D-" + left : "D+" + (-left);
             JLabel due = Theme.label(t.getDue().format(Times.MD) + "  " + dday, Theme.TINY,
                     !t.isDone() && left < 0 ? Theme.DANGER
-                            : !t.isDone() && left <= 1 ? Theme.IMPORTANT : Theme.TEXT_MUTED);
+                            : !t.isDone() && left <= 1 ? Theme.IMPORTANT : Theme.wMuted);
             due.setBorder(new EmptyBorder(0, 0, 0, 4));
             row.add(due, BorderLayout.EAST);
         }

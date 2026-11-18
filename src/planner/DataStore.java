@@ -52,6 +52,8 @@ public class DataStore {
     private int widgetOpacity = 100;
     /** True: text stays 100% visible when widgets are see-through. False: text fades too. */
     private boolean solidText = true;
+    /** Widget style: LIGHT, DARK or GLASS (Theme.Style). */
+    private Theme.Style style = Theme.Style.LIGHT;
     /** Cell size in pixels, and whether it (and the board) was matched to the desktop icon grid. */
     private int cellW = Theme.CELL;
     private int cellH = Theme.CELL;
@@ -257,6 +259,15 @@ public class DataStore {
         gridMatched = matched;
     }
 
+    public Theme.Style getStyle() {
+        return style;
+    }
+
+    public void setStyle(Theme.Style s) {
+        style = s;
+        save();
+    }
+
     public boolean isSolidText() {
         return solidText;
     }
@@ -362,6 +373,10 @@ public class DataStore {
                     gridMatched = Boolean.parseBoolean(f[2].trim());
                     return 0;
                 }
+                if (f[1].equals("style")) {
+                    style = Theme.Style.valueOf(f[2].trim());
+                    return 0;
+                }
                 if (f[1].equals("solidText")) {
                     solidText = Boolean.parseBoolean(f[2].trim());
                     return 0;
@@ -431,6 +446,7 @@ public class DataStore {
         out.add("SETTING|timetableEnd|" + timetableEndHour);
         out.add("SETTING|widgetOpacity|" + widgetOpacity);
         out.add("SETTING|solidText|" + solidText);
+        out.add("SETTING|style|" + style.name());
         out.add("SETTING|cell|" + cellW + "x" + cellH);
         out.add("SETTING|gridMatched|" + gridMatched);
         out.add("SETTING|gridOrigin|" + gridOrigin.x + "," + gridOrigin.y);

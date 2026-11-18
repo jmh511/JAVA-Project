@@ -41,12 +41,13 @@ public class TimetableWidget extends WidgetPanel {
 
     public TimetableWidget(DataStore store) {
         super(WidgetType.TIMETABLE, store);
-        JButton add = Theme.flatButton("+ Add");
+        JButton add = Theme.widgetButton("+ Add");
         add.setToolTipText("Add an event for today");
         add.addActionListener(e -> EventDialog.showAdd(this, store, LocalDate.now(), Times.nextHalfHour()));
         addHeaderTool(add);
 
         scroll.setBorder(null);
+        Theme.styleScroll(scroll);
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(false);
         scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -176,12 +177,12 @@ public class TimetableWidget extends WidgetPanel {
             for (int m = start; m <= end; m += 30) {
                 int y = yOf(m);
                 if (m % 60 == 0) {
-                    g2.setColor(Theme.GRID_LINE);
+                    g2.setColor(Theme.wLine);
                     g2.drawLine(LABEL_WIDTH, y, w, y);
-                    g2.setColor(Theme.TEXT_MUTED);
+                    g2.setColor(Theme.wMuted);
                     g2.drawString(Times.hm(m), 2, y + fm.getAscent() / 2 - 1);
                 } else {
-                    g2.setColor(new Color(0xF0F0EC));
+                    g2.setColor(Theme.withAlpha(Theme.wLine, Theme.wLine.getAlpha() / 2));
                     g2.drawLine(LABEL_WIDTH, y, w, y);
                 }
             }
@@ -222,8 +223,8 @@ public class TimetableWidget extends WidgetPanel {
         }
 
         private void drawBlock(Graphics2D g2, Event e, Rectangle r) {
-            Color fill = e.isImportant() ? Theme.IMPORTANT_SOFT : Theme.EVENT_BLOCK;
-            Color bar = e.isImportant() ? Theme.IMPORTANT : Theme.ACCENT;
+            Color fill = e.isImportant() ? Theme.wImportantSoft : Theme.wBlock;
+            Color bar = e.isImportant() ? Theme.IMPORTANT : Theme.wAccent;
             g2.setColor(fill);
             g2.fillRoundRect(r.x, r.y, r.width, r.height, 8, 8);
             g2.setColor(bar);
@@ -231,7 +232,7 @@ public class TimetableWidget extends WidgetPanel {
 
             Graphics2D t = (Graphics2D) g2.create();
             t.clipRect(r.x + 6, r.y, r.width - 8, r.height);
-            t.setColor(Theme.TEXT);
+            t.setColor(Theme.wText);
             t.setFont(Theme.SMALL);
             FontMetrics fm = t.getFontMetrics();
             int ty = r.y + fm.getAscent() + 2;
@@ -241,7 +242,7 @@ public class TimetableWidget extends WidgetPanel {
             t.drawString(e.getTitle(), r.x + 8, ty);
             if (showTimes && r.height >= fm.getHeight() * 2 + 2) {
                 t.setFont(Theme.TINY);
-                t.setColor(Theme.TEXT_MUTED);
+                t.setColor(Theme.wMuted);
                 t.drawString(e.timeRange(), r.x + 8, ty + fm.getHeight());
             }
             t.dispose();

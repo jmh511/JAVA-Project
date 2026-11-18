@@ -55,7 +55,7 @@ public abstract class WidgetPanel extends JPanel implements DataStore.Listener {
 
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
-        titleLabel = Theme.label(type.getTitle(), Theme.TITLE, Theme.TEXT);
+        titleLabel = Theme.label(type.getTitle(), Theme.TITLE, Theme.wText);
         headerTools = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         headerTools.setOpaque(false);
         header.add(titleLabel, BorderLayout.CENTER);
@@ -114,7 +114,17 @@ public abstract class WidgetPanel extends JPanel implements DataStore.Listener {
             int g = (p >> 8) & 0xFF;
             int b = p & 0xFF;
             int brightness = (r * 299 + g * 587 + b * 114) / 1000;
-            float ink = Math.max(0f, Math.min(1f, (INK_LIGHT - brightness) / range));
+            // Light style: dark pixels are text. Dark and Liquid Glass: bright pixels are text.
+            float ink = Theme.lightInk()
+                    ? Math.max(0f, Math.min(1f, (brightness - 110) / 80f))
+                    : Math.max(0f, Math.min(1f, (INK_LIGHT - brightness) / range));
+            // Strongly colored pixels (blue / red text, accents) count as text in every style.
+            int max = Math.max(r, Math.max(g, b));
+            int min = Math.min(r, Math.min(g, b));
+            if (max > 90) {
+                float saturation = (max - min) / (float) max;
+                ink = Math.max(ink, Math.max(0f, Math.min(1f, (saturation - 0.35f) / 0.25f)));
+            }
             int newA = Math.round(a * (opacity + (1f - opacity) * ink));
             px[i] = (newA << 24) | (p & 0x00FFFFFF);
         }
@@ -167,14 +177,45 @@ public abstract class WidgetPanel extends JPanel implements DataStore.Listener {
         g2.dispose();
     }
 
+    /** Card background, depending on the chosen style (Light / Dark / Liquid Glass). */
     @Override
     protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setColor(Theme.CARD_BG);
-        g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
-        g2.setColor(Theme.CARD_BORDER);
-        g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
+        int w = getWidth() - 1;
+        int h = getHeight() - 1;
+        int arc = Theme.CARD_ARC;
+        switch (Theme.style()) {
+            case LIGHT:
+                // Soft shadow: a few faint rings just inside the cell gap.
+                for (int i = 3; i >= 1; i--) {
+                    g2.setColor(new java.awt.Color(0, 0, 0, 7 - i));
+                    g2.fillRoundRect(-i + 1, -i + 2, w + 2 * i - 2, h + 2 * i - 2, arc + 2 * i, arc + 2 * i);
+                }
+                g2.setColor(Theme.wCard);
+                g2.fillRoundRect(0, 0, w, h, arc, arc);
+                g2.setColor(Theme.wEdge);
+                g2.drawRoundRect(0, 0, w, h, arc, arc);
+                break;
+            case DARK:
+                g2.setColor(Theme.wCard);
+                g2.fillRoundRect(0, 0, w, h, arc, arc);
+                g2.setColor(Theme.wEdge);
+                g2.drawRoundRect(0, 0, w, h, arc, arc);
+                break;
+            default: // GLASS
+                g2.setColor(Theme.wCard);
+                g2.fillRoundRect(0, 0, w, h, arc, arc);
+                // Light falling on the top of the glass.
+                g2.setPaint(new java.awt.GradientPaint(0, 0, new java.awt.Color(255, 255, 255, 60),
+                        0, h * 0.45f, new java.awt.Color(255, 255, 255, 0)));
+                g2.fillRoundRect(0, 0, w, h, arc, arc);
+                // Bright rim, slightly stronger at the top.
+                g2.setPaint(new java.awt.GradientPaint(0, 0, Theme.wEdge,
+                        0, h, Theme.withAlpha(Theme.wEdge, Theme.wEdge.getAlpha() / 3)));
+                g2.setStroke(new java.awt.BasicStroke(1.2f));
+                g2.drawRoundRect(0, 0, w, h, arc, arc);
+        }
         g2.dispose();
     }
 

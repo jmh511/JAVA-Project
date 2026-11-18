@@ -24,7 +24,9 @@
   - 배경은 투명, 편집할 때만 30% 배경과 격자 표시
   - 바탕화면 아이콘(파일)을 가리지 않음: 빈자리로 이동하거나 아이콘 부분을 뚫어서 보이게 함
   - 설정에서 **바탕화면 아이콘 격자에 맞추기** (칸 크기 = 아이콘 간격, 보드 = 바탕화면 전체)
-- **설정**: 위젯 투명도(30~100%), 글씨는 100% 유지 옵션, 보드 크기
+- **위젯 Dock**: 편집 모드에서 화면 아래에 macOS Dock 같은 막대가 나타남. 아이콘을 보드로 끌어 위젯 추가, 위젯을 Dock으로 끌어 제거
+- **스타일 3종**: Light / Dark / Liquid Glass (Settings에서 선택)
+- **설정**: 스타일, 위젯 투명도(30~100%), 글씨는 100% 유지 옵션, 바탕화면 격자 맞춤
 
 ## 사용법
 
@@ -32,6 +34,7 @@
 - 보드 크기: Edit layout에서 보드 테두리를 끌어 조절 (Settings에서 바탕화면 격자 맞춤 / 아이콘 사이 빈 공간에 맞춤)
 - 위젯 투명도, 글씨 선명도: Settings
 - 작업 표시줄 알림 영역 아이콘 메뉴로도 같은 기능 사용 가능
+- 위젯 추가/제거: Edit layout → 아래 Dock에서 끌어서 넣기 / Dock으로 끌어서 빼기
 - 편집 모드 종료: **Done** 버튼
 
 ## 구조 (`src/planner`)
@@ -40,7 +43,7 @@
 |---|---|
 | 시작 | `Main` |
 | 데이터 | `DataStore`, `Event`, `Todo`, `ChecklistItem`, `WidgetLayout` |
-| 보드/창 | `BoardFrame`, `BoardPanel`, `EditOverlay`, `SnapAnimator` |
+| 보드/창 | `BoardFrame`, `BoardPanel`, `EditOverlay`, `WidgetDock`, `SnapAnimator` |
 | 위젯 | `WidgetPanel`(공통 부모), `CalendarWidget`, `TimetableWidget`, `HighlightsWidget`, `ChecklistWidget`, `TodoWidget` |
 | 입력 창 | `EventDialog`, `TodoDialog`, `DayDialog`, `TimetableSettingsDialog`, `SettingsDialog` |
 | 바탕화면 | `DesktopEmbedder`, `DesktopHost`, `win/Win32Desktop` |

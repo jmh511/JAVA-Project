@@ -43,8 +43,8 @@ public class CalendarWidget extends WidgetPanel {
 
     public CalendarWidget(DataStore store) {
         super(WidgetType.CALENDAR, store);
-        JButton prev = Theme.flatButton("<");
-        JButton next = Theme.flatButton(">");
+        JButton prev = Theme.widgetButton("<");
+        JButton next = Theme.widgetButton(">");
         prev.setToolTipText("Previous month");
         next.setToolTipText("Next month");
         prev.addActionListener(e -> {
@@ -82,7 +82,7 @@ public class CalendarWidget extends WidgetPanel {
 
         grid.removeAll();
         for (int i = 0; i < 7; i++) {
-            JLabel l = Theme.label(WEEKDAYS[i], Theme.TINY, i == 0 ? Theme.SUNDAY : Theme.TEXT_MUTED);
+            JLabel l = Theme.label(WEEKDAYS[i], Theme.TINY, i == 0 ? Theme.SUNDAY : Theme.wMuted);
             l.setHorizontalAlignment(SwingConstants.CENTER);
             grid.add(l);
         }
@@ -104,18 +104,18 @@ public class CalendarWidget extends WidgetPanel {
         if (showAgenda) {
             LocalDate today = LocalDate.now();
             List<Event> todays = store.eventsOn(today);
-            agenda.add(Theme.label("Today " + today.format(Times.MD), Theme.SMALL, Theme.TEXT));
+            agenda.add(Theme.label("Today " + today.format(Times.MD), Theme.SMALL, Theme.wText));
             if (todays.isEmpty()) {
-                agenda.add(Theme.label("No events", Theme.TINY, Theme.TEXT_MUTED));
+                agenda.add(Theme.label("No events", Theme.TINY, Theme.wMuted));
             }
             int max = Math.min(todays.size(), 2);
             for (int i = 0; i < max; i++) {
                 Event e = todays.get(i);
                 agenda.add(Theme.label(Times.hm(e.getStartMin()) + "  " + e.getTitle(), Theme.TINY,
-                        e.isImportant() ? Theme.IMPORTANT : Theme.TEXT_MUTED));
+                        e.isImportant() ? Theme.IMPORTANT : Theme.wMuted));
             }
             if (todays.size() > max) {
-                agenda.add(Theme.label("+" + (todays.size() - max) + " more", Theme.TINY, Theme.TEXT_MUTED));
+                agenda.add(Theme.label("+" + (todays.size() - max) + " more", Theme.TINY, Theme.wMuted));
             }
         }
     }
@@ -180,24 +180,24 @@ public class CalendarWidget extends WidgetPanel {
             int ty = (h - fm.getHeight()) / 2 + fm.getAscent() - 1;
 
             boolean today = date.equals(LocalDate.now());
-            Color textColor = date.getDayOfWeek() == DayOfWeek.SUNDAY ? Theme.SUNDAY : Theme.TEXT;
+            Color textColor = date.getDayOfWeek() == DayOfWeek.SUNDAY ? Theme.SUNDAY : Theme.wText;
             if (today) {
                 // A ring with a blue number (not white on blue), so it stays clear when widgets are see-through.
                 int d = Math.min(w, h) - 2;
-                g2.setColor(Theme.ACCENT);
+                g2.setColor(Theme.wAccent);
                 g2.setStroke(new BasicStroke(1.6f));
                 g2.drawOval((w - d) / 2, (h - d) / 2 - 1, d, d);
                 g2.setFont(g2.getFont().deriveFont(Font.BOLD));
                 fm = g2.getFontMetrics();
                 tx = (w - fm.stringWidth(text)) / 2;
-                textColor = Theme.ACCENT;
+                textColor = Theme.wAccent;
             }
             g2.setColor(textColor);
             g2.drawString(text, tx, ty);
 
             if (hasEvents) {
                 int dot = 4;
-                g2.setColor(hasImportant ? Theme.IMPORTANT : Theme.ACCENT);
+                g2.setColor(hasImportant ? Theme.IMPORTANT : Theme.wAccent);
                 g2.fillOval((w - dot) / 2, h - dot - 1, dot, dot);
             }
             g2.dispose();

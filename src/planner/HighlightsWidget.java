@@ -27,7 +27,7 @@ public class HighlightsWidget extends WidgetPanel {
     private final DefaultListModel<Event> model = new DefaultListModel<>();
     private final JList<Event> list = new JList<>(model);
     private final JScrollPane scroll = new JScrollPane(list);
-    private final JLabel emptyLabel = Theme.label("No important events", Theme.SMALL, Theme.TEXT_MUTED);
+    private final JLabel emptyLabel = Theme.label("No important events", Theme.SMALL, Theme.wMuted);
     private boolean compact;
 
     public HighlightsWidget(DataStore store) {
@@ -64,6 +64,7 @@ public class HighlightsWidget extends WidgetPanel {
             }
         });
         scroll.setBorder(null);
+        Theme.styleScroll(scroll);
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(false);
         scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -74,7 +75,7 @@ public class HighlightsWidget extends WidgetPanel {
     private void styleToggles() {
         for (JToggleButton b : new JToggleButton[]{weekButton, monthButton}) {
             // Same (bold) font for both, so the width never changes and the text is not cut off.
-            b.setForeground(b.isSelected() ? Theme.ACCENT : Theme.TEXT_MUTED);
+            b.setForeground(b.isSelected() ? Theme.wAccent : Theme.wMuted);
             b.setFont(Theme.SMALL.deriveFont(Font.BOLD));
         }
     }
@@ -137,7 +138,7 @@ public class HighlightsWidget extends WidgetPanel {
             c.setFont(Theme.SMALL);
             c.setBorder(new EmptyBorder(1, 0, 1, 0));
             boolean past = e.getDate().isBefore(LocalDate.now());
-            c.setForeground(past ? Theme.TEXT_MUTED : Theme.TEXT);
+            c.setForeground(past ? Theme.wMuted : Theme.wText);
             c.setToolTipText(e.getDate().format(Times.DOW_MD) + " " + e.timeRange() + "  " + e.getTitle());
             return c;
         }

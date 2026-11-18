@@ -83,6 +83,7 @@ public class BoardFrame extends JFrame {
         setUndecorated(DesktopEmbedder.isSupported());
 
         Theme.setCellSize(store.getCellW(), store.getCellH()); // saved grid (default 80 x 80)
+        Theme.setStyle(store.getStyle());                      // saved widget style
         board = new BoardPanel(store, this);
         notice = createNotice();
         notice.setVisible(false);

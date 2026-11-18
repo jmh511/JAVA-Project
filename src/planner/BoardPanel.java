@@ -28,6 +28,7 @@ public class BoardPanel extends JPanel {
     private final BoardFrame frame;
     private final List<WidgetPanel> widgets = new ArrayList<>();
     private final EditOverlay overlay;
+    private WidgetDock dock;
     private boolean editMode;
     /** Board size in cells. */
     private int cols;
@@ -352,6 +353,46 @@ public class BoardPanel extends JPanel {
         remove(w);
         w.dispose();
         repaint();
+        if (dock != null) {
+            dock.refresh();
+        }
+    }
+
+    /** True if a widget of this type is on the board (each type can be added once from the dock). */
+    public boolean hasWidget(WidgetType type) {
+        for (WidgetPanel w : widgets) {
+            if (w.getType() == type) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Adds a widget dropped from the dock: it grows from the dropped icon into its cells. */
+    public void addWidgetAnimated(WidgetType type, Rectangle cells, Rectangle fromPixels) {
+        WidgetPanel w = addWidget(type, cells.x, cells.y, cells.width, cells.height);
+        Rectangle to = w.getBounds();
+        w.setBounds(fromPixels);
+        SnapAnimator.animate(fromPixels, to, r -> {
+            w.setBounds(r);
+            w.revalidate();
+            overlay.repaint();
+        }, () -> {
+            w.setGrid(cells);
+            overlay.repaint();
+        });
+        if (dock != null) {
+            dock.refresh();
+        }
+    }
+
+    public EditOverlay getOverlay() {
+        return overlay;
+    }
+
+    /** The dock while in edit mode, otherwise null. */
+    public WidgetDock getDock() {
+        return dock;
     }
 
     private void clearWidgets() {
@@ -465,8 +506,14 @@ public class BoardPanel extends JPanel {
             overlay.setBounds(0, 0, getWidth(), getHeight());
             add(overlay);
             setComponentZOrder(overlay, 0);
+            dock = new WidgetDock(this); // add / remove widgets by dragging
+            dock.setVisible(true);
         } else {
             remove(overlay);
+            if (dock != null) {
+                dock.dispose();
+                dock = null;
+            }
             store.save(); // save the layout when editing ends
         }
         frame.onEditModeChanged(on);
@@ -520,6 +567,19 @@ public class BoardPanel extends JPanel {
         for (WidgetPanel w : widgets) {
             w.setOpacity(store.getWidgetOpacity() / 100f);
         }
+        repaint();
+    }
+
+    /** Changes the widget style; widgets are rebuilt in the same places so they pick up the new colors. */
+    public void setWidgetStyle(Theme.Style s) {
+        Theme.setStyle(s);
+        store.setStyle(s);
+        List<WidgetLayout> layouts = currentLayouts();
+        clearWidgets();
+        for (WidgetLayout l : layouts) {
+            addWidget(l.getType(), l.getCol(), l.getRow(), l.getCols(), l.getRows());
+        }
+        revalidate();
         repaint();
     }
 
