@@ -194,7 +194,7 @@ public class BoardPanel extends JPanel {
         EmptyBoardButton() {
             setOpaque(false);
             setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
-            setToolTipText("The board is empty. Click to add widgets, or drag to move this button.");
+            setToolTipText("Add widgets (the board is empty). Drag to move this button.");
             setInheritsPopupMenu(true); // right-click: the board's menu
             java.awt.event.MouseAdapter mouse = new java.awt.event.MouseAdapter() {
                 private Point press;      // screen point where the button was pressed
@@ -260,7 +260,7 @@ public class BoardPanel extends JPanel {
 
         @Override
         public Dimension getPreferredSize() {
-            return new Dimension(150, 38);
+            return new Dimension(44, 44);
         }
 
         @Override
@@ -273,24 +273,17 @@ public class BoardPanel extends JPanel {
             boolean light = Theme.style() == Theme.Style.LIGHT;
             java.awt.Color bg = hover ? Theme.ACCENT
                     : light ? new java.awt.Color(255, 255, 255, 235) : new java.awt.Color(30, 30, 33, 225);
-            java.awt.Color fg = hover ? java.awt.Color.WHITE : light ? Theme.TEXT : new java.awt.Color(0xF2F2F7);
+            // Round button with just a "+" (the tooltip explains it).
             g2.setColor(bg);
-            g2.fillRoundRect(0, 0, w, h, h, h);
+            g2.fillOval(0, 0, w, h);
             g2.setColor(light && !hover ? new java.awt.Color(0, 0, 0, 30) : new java.awt.Color(255, 255, 255, 40));
-            g2.drawRoundRect(0, 0, w, h, h, h);
-
-            // "+" in a circle, then the label
-            int c = h / 2;
+            g2.drawOval(0, 0, w, h);
             g2.setColor(hover ? java.awt.Color.WHITE : Theme.ACCENT);
-            g2.fillOval(10, c - 9, 18, 18);
-            g2.setColor(hover ? Theme.ACCENT : java.awt.Color.WHITE);
-            g2.setStroke(new java.awt.BasicStroke(2f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
-            g2.drawLine(19, c - 5, 19, c + 5);
-            g2.drawLine(14, c, 24, c);
-            g2.setColor(fg);
-            g2.setFont(Theme.TITLE);
-            java.awt.FontMetrics fm = g2.getFontMetrics();
-            g2.drawString("Add widgets", 36, (getHeight() - fm.getHeight()) / 2 + fm.getAscent());
+            g2.setStroke(new java.awt.BasicStroke(3f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
+            int c = w / 2;
+            int arm = w / 5;
+            g2.drawLine(c, c - arm, c, c + arm);
+            g2.drawLine(c - arm, c, c + arm, c);
             g2.dispose();
         }
     }
