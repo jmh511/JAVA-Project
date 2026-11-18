@@ -62,6 +62,7 @@ public class BoardPanel extends JPanel {
             }
         });
         ticker.start();
+        updateEmptyButton(); // shown until widgets are added (e.g. a saved empty board)
     }
 
     /** Widgets may overlap the edit overlay, so let Swing paint children in the safe way. */
@@ -145,6 +146,100 @@ public class BoardPanel extends JPanel {
     public void doLayout() {
         if (editMode) {
             overlay.setBounds(0, 0, getWidth(), getHeight());
+        }
+        placeEmptyButton();
+    }
+
+    // ------------------------------------------------------------------ empty board button
+
+    /**
+     * When every widget has been removed, the transparent board cannot be clicked anywhere.
+     * This small button in its bottom-right corner opens edit mode (and the dock) again.
+     */
+    private final EmptyBoardButton emptyButton = new EmptyBoardButton();
+
+    private void updateEmptyButton() {
+        boolean show = widgets.isEmpty() && !editMode;
+        if (show && emptyButton.getParent() == null) {
+            add(emptyButton);
+            setComponentZOrder(emptyButton, 0);
+            placeEmptyButton();
+            repaint();
+        } else if (!show && emptyButton.getParent() != null) {
+            remove(emptyButton);
+            repaint();
+        }
+    }
+
+    private void placeEmptyButton() {
+        Dimension d = emptyButton.getPreferredSize();
+        emptyButton.setBounds(getWidth() - d.width - 12, getHeight() - d.height - 12, d.width, d.height);
+    }
+
+    private final class EmptyBoardButton extends javax.swing.JComponent {
+        private boolean hover;
+
+        EmptyBoardButton() {
+            setOpaque(false);
+            setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+            setToolTipText("The board is empty. Click to add widgets.");
+            setInheritsPopupMenu(true); // right-click: the board's menu
+            addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    if (javax.swing.SwingUtilities.isLeftMouseButton(e)) {
+                        setEditMode(true);
+                    }
+                }
+
+                @Override
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    hover = true;
+                    repaint();
+                }
+
+                @Override
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    hover = false;
+                    repaint();
+                }
+            });
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            return new Dimension(150, 38);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            int w = getWidth() - 1;
+            int h = getHeight() - 1;
+            boolean light = Theme.style() == Theme.Style.LIGHT;
+            java.awt.Color bg = hover ? Theme.ACCENT
+                    : light ? new java.awt.Color(255, 255, 255, 235) : new java.awt.Color(30, 30, 33, 225);
+            java.awt.Color fg = hover ? java.awt.Color.WHITE : light ? Theme.TEXT : new java.awt.Color(0xF2F2F7);
+            g2.setColor(bg);
+            g2.fillRoundRect(0, 0, w, h, h, h);
+            g2.setColor(light && !hover ? new java.awt.Color(0, 0, 0, 30) : new java.awt.Color(255, 255, 255, 40));
+            g2.drawRoundRect(0, 0, w, h, h, h);
+
+            // "+" in a circle, then the label
+            int c = h / 2;
+            g2.setColor(hover ? java.awt.Color.WHITE : Theme.ACCENT);
+            g2.fillOval(10, c - 9, 18, 18);
+            g2.setColor(hover ? Theme.ACCENT : java.awt.Color.WHITE);
+            g2.setStroke(new java.awt.BasicStroke(2f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
+            g2.drawLine(19, c - 5, 19, c + 5);
+            g2.drawLine(14, c, 24, c);
+            g2.setColor(fg);
+            g2.setFont(Theme.TITLE);
+            java.awt.FontMetrics fm = g2.getFontMetrics();
+            g2.drawString("Add widgets", 36, (getHeight() - fm.getHeight()) / 2 + fm.getAscent());
+            g2.dispose();
         }
     }
 
@@ -322,6 +417,7 @@ public class BoardPanel extends JPanel {
             setComponentZOrder(overlay, 0);
         }
         repaint();
+        updateEmptyButton();
         return w;
     }
 
@@ -353,6 +449,7 @@ public class BoardPanel extends JPanel {
         remove(w);
         w.dispose();
         repaint();
+        updateEmptyButton();
         if (dock != null) {
             dock.refresh();
         }
@@ -516,6 +613,7 @@ public class BoardPanel extends JPanel {
             }
             store.save(); // save the layout when editing ends
         }
+        updateEmptyButton();
         frame.onEditModeChanged(on);
         revalidate();
         repaint();
