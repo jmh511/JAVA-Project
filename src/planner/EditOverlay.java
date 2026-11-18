@@ -279,28 +279,102 @@ public class EditOverlay extends JComponent {
         }
         // Held over the dock: release will remove the widget.
         WidgetDock dock = board.getDock();
-        overDock = dock != null && dock.containsScreenPoint(screen);
+        overDock = !resizing && dock != null && dock.containsScreenPoint(screen);
         if (dock != null) {
             dock.setRemoveHover(overDock);
         }
-        previewCells = overDock ? null : snap(target.getBounds());
+        // Off the board (or over the dock): a floating copy follows the cursor across the screen.
+        Rectangle boardOnScreen = new Rectangle(board.getLocationOnScreen(), board.getSize());
+        boolean lifted = !resizing && (overDock || !boardOnScreen.contains(screen));
+        if (lifted) {
+            showGhost(screen);
+            target.setVisible(false);
+        } else {
+            hideGhost();
+            target.setVisible(true);
+        }
+        previewCells = lifted ? null : snap(target.getBounds());
         previewValid = previewCells != null && board.fits(previewCells, target);
         repaint();
+    }
+
+    // ------------------------------------------------------------------ floating copy (ghost)
+
+    /** Floating copy of the dragged widget, shown while it is outside the board. */
+    private javax.swing.JWindow ghost;
+    private java.awt.image.BufferedImage ghostImage;
+    /** Where the cursor holds the copy, relative to the copy's top-left corner. */
+    private Point ghostGrip;
+
+    private void showGhost(Point screen) {
+        if (ghost == null) {
+            Rectangle b = target.getBounds();
+            // Smaller than the widget, so it does not cover the dock while being dragged.
+            double scale = Math.min(0.75, 240.0 / Math.max(b.width, b.height));
+            int gw = (int) Math.round(b.width * scale);
+            int gh = (int) Math.round(b.height * scale);
+            ghostImage = snapshot(target);
+            ghostGrip = new Point((int) Math.round((pressPoint.x - startBounds.x) * scale),
+                    (int) Math.round((pressPoint.y - startBounds.y) * scale));
+            java.awt.Window owner = board.getDock() != null ? board.getDock() : board.getFrame();
+            ghost = new javax.swing.JWindow(owner); // owned by the dock, so it is drawn above it
+            ghost.setFocusableWindowState(false);
+            ghost.setBackground(new Color(0, 0, 0, 0));
+            java.awt.image.BufferedImage img = ghostImage;
+            ghost.setContentPane(new JComponent() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                    g2.setComposite(AlphaComposite.SrcOver.derive(0.9f));
+                    g2.drawImage(img, 0, 0, getWidth(), getHeight(), null);
+                    g2.dispose();
+                }
+            });
+            ghost.setSize(gw, gh);
+        }
+        ghost.setLocation(screen.x - ghostGrip.x, screen.y - ghostGrip.y);
+        if (!ghost.isVisible()) {
+            ghost.setVisible(true);
+        }
+    }
+
+    private void hideGhost() {
+        if (ghost != null && ghost.isVisible()) {
+            ghost.setVisible(false);
+        }
+    }
+
+    private void disposeGhost() {
+        if (ghost != null) {
+            ghost.dispose();
+            ghost = null;
+            ghostImage = null;
+        }
+    }
+
+    /** Picture of a widget, at the display scale so it stays sharp. */
+    private java.awt.image.BufferedImage snapshot(JComponent c) {
+        double s = Math.max(1.0, c.getGraphicsConfiguration() == null ? 1.0
+                : c.getGraphicsConfiguration().getDefaultTransform().getScaleX());
+        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(
+                (int) Math.ceil(c.getWidth() * s), (int) Math.ceil(c.getHeight() * s),
+                java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = img.createGraphics();
+        g.scale(s, s);
+        c.paint(g);
+        g.dispose();
+        return img;
     }
 
     /** Slides the widget into its snapped cells (or back, if they are taken). */
     private void releaseWidget() {
         WidgetPanel w = target;
-        if (overDock) {
-            // Dropped on the dock: remove it from the board (its data stays).
-            overDock = false;
-            target = null;
-            previewCells = null;
-            board.getDock().setRemoveHover(false);
-            board.removeWidget(w);
-            repaint();
+        if (ghost != null && ghost.isVisible()) {
+            releaseLifted(w);
             return;
         }
+        disposeGhost();
         Rectangle snapped = snap(w.getBounds());
         Rectangle cells = board.fits(snapped, w) ? snapped : startCells;
         target = null;
@@ -315,6 +389,47 @@ public class EditOverlay extends JComponent {
             animating = false;
             repaint();
         });
+    }
+
+    /**
+     * The widget was released while floating outside the board.
+     * Over the dock: the copy shrinks into the dock and the widget is removed (its data stays).
+     * Anywhere else: the copy flies back to where the widget was, and the widget reappears there.
+     */
+    private void releaseLifted(WidgetPanel w) {
+        javax.swing.JWindow g = ghost;
+        ghost = null;
+        ghostImage = null;
+        target = null;
+        previewCells = null;
+        animating = true;
+        WidgetDock dock = board.getDock();
+        if (overDock && dock != null) {
+            overDock = false;
+            Rectangle into = new Rectangle(dock.getX() + dock.getWidth() / 2 - 6, dock.getY() + 24, 12, 12);
+            SnapAnimator.animate(g.getBounds(), into, g::setBounds, () -> {
+                g.dispose();
+                dock.setRemoveHover(false);
+                board.removeWidget(w);
+                animating = false;
+                repaint();
+            });
+        } else {
+            overDock = false;
+            if (dock != null) {
+                dock.setRemoveHover(false);
+            }
+            Point home = startBounds.getLocation();
+            SwingUtilities.convertPointToScreen(home, board);
+            Rectangle back = new Rectangle(home, startBounds.getSize());
+            SnapAnimator.animate(g.getBounds(), back, g::setBounds, () -> {
+                g.dispose();
+                w.setVisible(true);
+                w.setGrid(startCells);
+                animating = false;
+                repaint();
+            });
+        }
     }
 
     // ------------------------------------------------------------------ drop from the dock
