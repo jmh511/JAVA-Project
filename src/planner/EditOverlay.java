@@ -509,10 +509,10 @@ public class EditOverlay extends JComponent {
         Point p = e.getPoint();
         WidgetPanel w = board.widgetAt(p);
 
-        JPopupMenu menu = new JPopupMenu();
+        JPopupMenu menu = Menus.popup();
         // Widgets are added by dragging them from the dock at the bottom of the screen.
         if (w != null) {
-            JMenuItem remove = new JMenuItem("Remove " + w.getType().getTitle() + " widget");
+            JMenuItem remove = Menus.item("Remove " + w.getType().getTitle() + " widget");
             remove.addActionListener(ev -> {
                 board.removeWidget(w);
                 repaint();
@@ -520,11 +520,11 @@ public class EditOverlay extends JComponent {
             menu.add(remove);
         }
         menu.addSeparator();
-        JMenuItem settings = new JMenuItem("Settings...");
+        JMenuItem settings = Menus.item("Settings...");
         settings.addActionListener(ev -> SettingsDialog.show(board.getFrame(), board.getStore()));
         menu.add(settings);
         menu.addSeparator();
-        JMenuItem done = new JMenuItem("Done");
+        JMenuItem done = Menus.item("Done");
         done.addActionListener(ev -> board.setEditMode(false));
         menu.add(done);
         menu.show(this, p.x, p.y);

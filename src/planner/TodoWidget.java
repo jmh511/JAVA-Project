@@ -98,10 +98,10 @@ public class TodoWidget extends WidgetPanel {
             row.add(due, BorderLayout.EAST);
         }
 
-        JPopupMenu menu = new JPopupMenu();
-        JMenuItem edit = new JMenuItem("Edit...");
+        JPopupMenu menu = Menus.popup();
+        JMenuItem edit = Menus.item("Edit...");
         edit.addActionListener(e -> TodoDialog.showEdit(this, store, t));
-        JMenuItem delete = new JMenuItem("Delete");
+        JMenuItem delete = Menus.dangerItem("Delete");
         delete.addActionListener(e -> store.removeTodo(t));
         menu.add(edit);
         menu.add(delete);

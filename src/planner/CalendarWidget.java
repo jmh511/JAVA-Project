@@ -123,7 +123,7 @@ public class CalendarWidget extends WidgetPanel {
     @Override
     public List<JMenuItem> createMenuItems() {
         List<JMenuItem> items = new ArrayList<>();
-        JMenuItem thisMonth = new JMenuItem("Go to this month");
+        JMenuItem thisMonth = Menus.item("Go to this month");
         thisMonth.addActionListener(e -> {
             shown = YearMonth.now();
             refresh();

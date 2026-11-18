@@ -137,8 +137,8 @@ public class ChecklistWidget extends WidgetPanel {
             cb.setAlignmentX(Component.LEFT_ALIGNMENT);
             cb.addActionListener(e -> store.setChecklistDone(item, cb.isSelected()));
 
-            JPopupMenu menu = new JPopupMenu();
-            JMenuItem delete = new JMenuItem("Delete item");
+            JPopupMenu menu = Menus.popup();
+            JMenuItem delete = Menus.dangerItem("Delete item");
             delete.addActionListener(e -> store.removeChecklistItem(item));
             menu.add(delete);
             cb.setComponentPopupMenu(menu);

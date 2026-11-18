@@ -524,13 +524,13 @@ public class BoardPanel extends JPanel {
     // ------------------------------------------------------------------ menus
 
     private JPopupMenu createBoardMenu() {
-        JPopupMenu menu = new JPopupMenu();
+        JPopupMenu menu = Menus.popup();
         addCommonItems(menu);
         return menu;
     }
 
     private JPopupMenu createWidgetMenu(WidgetPanel w) {
-        JPopupMenu menu = new JPopupMenu();
+        JPopupMenu menu = Menus.popup();
         List<JMenuItem> own = w.createMenuItems();
         for (JMenuItem item : own) {
             menu.add(item);
@@ -543,19 +543,19 @@ public class BoardPanel extends JPanel {
     }
 
     private void addCommonItems(JPopupMenu menu) {
-        JMenuItem addEvent = new JMenuItem("Add event...");
+        JMenuItem addEvent = Menus.item("Add event...");
         addEvent.addActionListener(e -> EventDialog.showAdd(this, store, LocalDate.now(), Times.nextHalfHour()));
-        JMenuItem addTodo = new JMenuItem("Add to-do...");
+        JMenuItem addTodo = Menus.item("Add to-do...");
         addTodo.addActionListener(e -> TodoDialog.showAdd(this, store));
-        JMenuItem edit = new JMenuItem("Edit layout");
+        JMenuItem edit = Menus.item("Edit layout");
         edit.addActionListener(e -> setEditMode(true));
-        JMenuItem exit = new JMenuItem("Exit");
+        JMenuItem exit = Menus.item("Exit");
         exit.addActionListener(e -> frame.exitApp());
         menu.add(addEvent);
         menu.add(addTodo);
         menu.addSeparator();
         menu.add(edit);
-        JMenuItem settings = new JMenuItem("Settings...");
+        JMenuItem settings = Menus.item("Settings...");
         settings.addActionListener(e -> SettingsDialog.show(frame, store));
         menu.add(settings);
         menu.add(exit);
