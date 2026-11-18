@@ -171,9 +171,21 @@ public class BoardPanel extends JPanel {
         }
     }
 
+    /** Where the user dragged it last time, or the bottom-right corner; always kept inside the board. */
     private void placeEmptyButton() {
         Dimension d = emptyButton.getPreferredSize();
-        emptyButton.setBounds(getWidth() - d.width - 12, getHeight() - d.height - 12, d.width, d.height);
+        Point saved = store.getAddButtonPos();
+        int x = saved != null ? saved.x : getWidth() - d.width - 12;
+        int y = saved != null ? saved.y : getHeight() - d.height - 12;
+        emptyButton.setBounds(clampX(x, d.width), clampY(y, d.height), d.width, d.height);
+    }
+
+    private int clampX(int x, int w) {
+        return Math.max(0, Math.min(x, getWidth() - w));
+    }
+
+    private int clampY(int y, int h) {
+        return Math.max(0, Math.min(y, getHeight() - h));
     }
 
     private final class EmptyBoardButton extends javax.swing.JComponent {
@@ -182,13 +194,51 @@ public class BoardPanel extends JPanel {
         EmptyBoardButton() {
             setOpaque(false);
             setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
-            setToolTipText("The board is empty. Click to add widgets.");
+            setToolTipText("The board is empty. Click to add widgets, or drag to move this button.");
             setInheritsPopupMenu(true); // right-click: the board's menu
-            addMouseListener(new java.awt.event.MouseAdapter() {
+            java.awt.event.MouseAdapter mouse = new java.awt.event.MouseAdapter() {
+                private Point press;      // screen point where the button was pressed
+                private Point start;      // button location at that moment
+                private boolean dragged;  // moved far enough to be a drag, not a click
+
                 @Override
-                public void mouseClicked(java.awt.event.MouseEvent e) {
+                public void mousePressed(java.awt.event.MouseEvent e) {
                     if (javax.swing.SwingUtilities.isLeftMouseButton(e)) {
-                        setEditMode(true);
+                        press = e.getLocationOnScreen();
+                        start = getLocation();
+                        dragged = false;
+                    }
+                }
+
+                @Override
+                public void mouseDragged(java.awt.event.MouseEvent e) {
+                    if (press == null) {
+                        return;
+                    }
+                    Point now = e.getLocationOnScreen();
+                    int dx = now.x - press.x;
+                    int dy = now.y - press.y;
+                    if (!dragged && Math.abs(dx) + Math.abs(dy) > 4) {
+                        dragged = true;
+                        setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.MOVE_CURSOR));
+                    }
+                    if (dragged) {
+                        setLocation(clampX(start.x + dx, getWidth()), clampY(start.y + dy, getHeight()));
+                        BoardPanel.this.repaint();
+                    }
+                }
+
+                @Override
+                public void mouseReleased(java.awt.event.MouseEvent e) {
+                    if (press == null) {
+                        return;
+                    }
+                    press = null;
+                    setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+                    if (dragged) {
+                        store.setAddButtonPos(getLocation()); // remembered for next time
+                    } else if (javax.swing.SwingUtilities.isLeftMouseButton(e)) {
+                        setEditMode(true); // a click, not a drag
                     }
                 }
 
@@ -203,7 +253,9 @@ public class BoardPanel extends JPanel {
                     hover = false;
                     repaint();
                 }
-            });
+            };
+            addMouseListener(mouse);
+            addMouseMotionListener(mouse);
         }
 
         @Override

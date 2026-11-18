@@ -52,6 +52,8 @@ public class DataStore {
     private int widgetOpacity = 100;
     /** True: text stays 100% visible when widgets are see-through. False: text fades too. */
     private boolean solidText = true;
+    /** Position of the "Add widgets" button on an empty board (board coordinates), or null = bottom-right. */
+    private java.awt.Point addButtonPos;
     /** Widget style: LIGHT, DARK or GLASS (Theme.Style). */
     private Theme.Style style = Theme.Style.LIGHT;
     /** Cell size in pixels, and whether it (and the board) was matched to the desktop icon grid. */
@@ -259,6 +261,15 @@ public class DataStore {
         gridMatched = matched;
     }
 
+    public java.awt.Point getAddButtonPos() {
+        return addButtonPos == null ? null : new java.awt.Point(addButtonPos);
+    }
+
+    public void setAddButtonPos(java.awt.Point p) {
+        addButtonPos = p == null ? null : new java.awt.Point(p);
+        save();
+    }
+
     public Theme.Style getStyle() {
         return style;
     }
@@ -373,6 +384,11 @@ public class DataStore {
                     gridMatched = Boolean.parseBoolean(f[2].trim());
                     return 0;
                 }
+                if (f[1].equals("addButton")) {
+                    String[] xy = f[2].split(",");
+                    addButtonPos = new java.awt.Point(Integer.parseInt(xy[0].trim()), Integer.parseInt(xy[1].trim()));
+                    return 0;
+                }
                 if (f[1].equals("style")) {
                     style = Theme.Style.valueOf(f[2].trim());
                     return 0;
@@ -447,6 +463,9 @@ public class DataStore {
         out.add("SETTING|widgetOpacity|" + widgetOpacity);
         out.add("SETTING|solidText|" + solidText);
         out.add("SETTING|style|" + style.name());
+        if (addButtonPos != null) {
+            out.add("SETTING|addButton|" + addButtonPos.x + "," + addButtonPos.y);
+        }
         out.add("SETTING|cell|" + cellW + "x" + cellH);
         out.add("SETTING|gridMatched|" + gridMatched);
         out.add("SETTING|gridOrigin|" + gridOrigin.x + "," + gridOrigin.y);
