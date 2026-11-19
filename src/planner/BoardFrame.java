@@ -657,6 +657,12 @@ public class BoardFrame extends JFrame {
 
         trayIcon = new TrayIcon(Theme.appIcon(32), TITLE, menu);
         trayIcon.setImageAutoSize(true);
+        // Focus timer: show "study / break is over" as a notification from the tray icon.
+        FocusTimer.notifier = (title, text) -> {
+            if (trayIcon != null) {
+                trayIcon.displayMessage(title, text, TrayIcon.MessageType.INFO);
+            }
+        };
         trayIcon.addActionListener(e -> showBoard()); // double-click on the icon
         try {
             SystemTray.getSystemTray().add(trayIcon);

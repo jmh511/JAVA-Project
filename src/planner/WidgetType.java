@@ -8,7 +8,9 @@ public enum WidgetType {
     TIMETABLE("Today", 2, 3, 3, 6),
     HIGHLIGHTS("Highlights", 2, 1, 3, 2),
     CHECKLIST("Checklist", 1, 2, 3, 3),
-    TODO("To-do", 1, 2, 3, 3);
+    TODO("To-do", 1, 2, 3, 3),
+    FOCUS("Focus", 2, 2, 3, 3),
+    SYSTEM("System", 2, 2, 3, 3);
 
     private final String title;
     private final int minCols;

@@ -550,6 +550,8 @@ public class BoardPanel extends JPanel {
             case HIGHLIGHTS: return new HighlightsWidget(store);
             case CHECKLIST: return new ChecklistWidget(store);
             case TODO: return new TodoWidget(store);
+            case FOCUS: return new FocusTimerWidget(store);
+            case SYSTEM: return new SystemWidget(store);
             default: throw new IllegalArgumentException("Unknown widget " + type);
         }
     }

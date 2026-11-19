@@ -304,6 +304,36 @@ public final class Theme {
         return b;
     }
 
+    /** Rounded "pill" button filled with the widget accent color (main action inside a widget). */
+    public static JButton pillButton(String text) {
+        JButton b = new JButton(text) {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                Color fill = getModel().isPressed() ? wAccent.darker() : wAccent;
+                g2.setColor(fill);
+                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, getHeight(), getHeight());
+                g2.setFont(getFont());
+                // dark text on the light glass accent, white text on the normal blue
+                g2.setColor(style == Style.GLASS ? new Color(0x10303A) : Color.WHITE);
+                java.awt.FontMetrics fm = g2.getFontMetrics();
+                g2.drawString(getText(), (getWidth() - fm.stringWidth(getText())) / 2,
+                        (getHeight() - fm.getHeight()) / 2 + fm.getAscent());
+                g2.dispose();
+            }
+        };
+        b.setFont(SMALL.deriveFont(Font.BOLD, 12f));
+        b.setContentAreaFilled(false);
+        b.setBorderPainted(false);
+        b.setFocusPainted(false);
+        b.setOpaque(false);
+        b.setBorder(new javax.swing.border.EmptyBorder(5, 16, 5, 16));
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
     /** Filled blue button for the main action of a window (one per window). */
     public static JButton primaryButton(String text) {
         JButton b = new JButton(text);

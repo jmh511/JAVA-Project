@@ -14,7 +14,7 @@
 
 ## 주요 기능
 
-- **위젯 5종**: 캘린더, 오늘 타임테이블, 주요 일정(Highlights), 체크리스트, 투두리스트
+- **위젯 7종**: 캘린더, 오늘 타임테이블, 주요 일정(Highlights), 체크리스트, 투두리스트, 집중 타이머(공부/쉬는 시간 설정), 시스템 상태(CPU 그래프, 메모리, 디스크)
 - **격자 보드**: 위젯을 칸 단위로 배치. 편집 모드에서 끌어서 이동/크기 조절, 놓으면 가까운 칸으로 부드럽게 정렬
 - **보드 크기 조절**: 편집 모드에서 보드 테두리를 끌어 조절
 - **위젯 간 데이터 연동**: 일정 하나를 입력하면 관련 위젯에 동시에 반영 (옵저버 패턴)
@@ -44,7 +44,7 @@
 | 시작 | `Main` |
 | 데이터 | `DataStore`, `Event`, `Todo`, `ChecklistItem`, `WidgetLayout` |
 | 보드/창 | `BoardFrame`, `BoardPanel`, `EditOverlay`, `WidgetDock`, `SnapAnimator` |
-| 위젯 | `WidgetPanel`(공통 부모), `CalendarWidget`, `TimetableWidget`, `HighlightsWidget`, `ChecklistWidget`, `TodoWidget` |
+| 위젯 | `WidgetPanel`(공통 부모), `CalendarWidget`, `TimetableWidget`, `HighlightsWidget`, `ChecklistWidget`, `TodoWidget`, `FocusTimerWidget`(+`FocusTimer`), `SystemWidget`(+`SystemSampler`) |
 | 입력 창 | `EventDialog`, `TodoDialog`, `DayDialog`, `TimetableSettingsDialog`, `SettingsDialog` |
 | 바탕화면 | `DesktopEmbedder`, `DesktopHost`, `win/Win32Desktop` |
 | 기타 | `Theme`, `Times`, `DateField`, `FormDialog`, `WidthTrackingPanel`, `WidgetRepaintManager` |

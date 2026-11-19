@@ -350,6 +350,41 @@ public class WidgetDock extends JWindow {
                         new int[]{s * 52 / 100, s * 68 / 100, s * 34 / 100}, 3);
                 break;
             }
+            case FOCUS: {
+                // red tile, white timer ring three-quarters full, small knob on top
+                g2.setPaint(new GradientPaint(0, 0, new Color(0xFF6B5E), 0, s, new Color(0xE0352B)));
+                g2.fillRoundRect(0, 0, s, s - 1, arc, arc);
+                int r = s * 30 / 100;
+                int c = s / 2 + s / 30;
+                g2.setStroke(new BasicStroke(s / 12f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2.setColor(new Color(255, 255, 255, 90));
+                g2.drawOval(s / 2 - r, c - r, 2 * r, 2 * r);
+                g2.setColor(Color.WHITE);
+                g2.drawArc(s / 2 - r, c - r, 2 * r, 2 * r, 90, -270);
+                g2.fillRoundRect(s / 2 - s / 14, c - r - s / 7, s / 7, s / 11, 3, 3);
+                break;
+            }
+            case SYSTEM: {
+                // graphite tile with a green activity line, like a system monitor
+                g2.setPaint(new GradientPaint(0, 0, new Color(0x4A4A4F), 0, s, new Color(0x1C1C1E)));
+                g2.fillRoundRect(0, 0, s, s - 1, arc, arc);
+                g2.setColor(new Color(255, 255, 255, 40));
+                g2.setStroke(new BasicStroke(1f));
+                for (int i = 1; i <= 3; i++) {
+                    int ly = s * (20 + i * 18) / 100;
+                    g2.drawLine(s * 15 / 100, ly, s * 85 / 100, ly);
+                }
+                g2.setColor(new Color(0x34C759));
+                g2.setStroke(new BasicStroke(s / 18f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                int[] px = {15, 30, 40, 52, 62, 72, 85};
+                int[] py = {70, 62, 40, 66, 30, 52, 44};
+                for (int i = 0; i < px.length; i++) {
+                    px[i] = s * px[i] / 100;
+                    py[i] = s * py[i] / 100;
+                }
+                g2.drawPolyline(px, py, px.length);
+                break;
+            }
             default: { // TODO
                 g2.setPaint(new GradientPaint(0, 0, new Color(0xBF5AF2), 0, s, new Color(0x8E44AD)));
                 g2.fillRoundRect(0, 0, s, s - 1, arc, arc);

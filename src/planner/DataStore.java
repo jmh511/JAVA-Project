@@ -54,6 +54,11 @@ public class DataStore {
     private boolean solidText = true;
     /** Position of the "Add widgets" button on an empty board (board coordinates), or null = bottom-right. */
     private java.awt.Point addButtonPos;
+    /** Focus timer: study and break length in minutes, and finished study sessions today. */
+    private int focusStudyMinutes = 25;
+    private int focusBreakMinutes = 5;
+    private LocalDate focusDate = LocalDate.now();
+    private int focusDoneToday;
     /** Widget style: LIGHT, DARK or GLASS (Theme.Style). */
     private Theme.Style style = Theme.Style.LIGHT;
     /** Cell size in pixels, and whether it (and the board) was matched to the desktop icon grid. */
@@ -261,6 +266,34 @@ public class DataStore {
         gridMatched = matched;
     }
 
+    public int getFocusStudyMinutes() {
+        return focusStudyMinutes;
+    }
+
+    public int getFocusBreakMinutes() {
+        return focusBreakMinutes;
+    }
+
+    public void setFocusMinutes(int study, int brk) {
+        focusStudyMinutes = Math.max(1, Math.min(180, study));
+        focusBreakMinutes = Math.max(1, Math.min(60, brk));
+        save();
+    }
+
+    /** Finished study sessions today (starts again from 0 on a new day). */
+    public int getFocusDoneToday() {
+        return focusDate.equals(LocalDate.now()) ? focusDoneToday : 0;
+    }
+
+    public void addFocusSession() {
+        if (!focusDate.equals(LocalDate.now())) {
+            focusDate = LocalDate.now();
+            focusDoneToday = 0;
+        }
+        focusDoneToday++;
+        save();
+    }
+
     public java.awt.Point getAddButtonPos() {
         return addButtonPos == null ? null : new java.awt.Point(addButtonPos);
     }
@@ -384,6 +417,18 @@ public class DataStore {
                     gridMatched = Boolean.parseBoolean(f[2].trim());
                     return 0;
                 }
+                if (f[1].equals("focus")) {
+                    String[] m = f[2].split(",");
+                    focusStudyMinutes = Math.max(1, Math.min(180, Integer.parseInt(m[0].trim())));
+                    focusBreakMinutes = Math.max(1, Math.min(60, Integer.parseInt(m[1].trim())));
+                    return 0;
+                }
+                if (f[1].equals("focusDone")) {
+                    String[] dc = f[2].split(",");
+                    focusDate = LocalDate.parse(dc[0].trim());
+                    focusDoneToday = Integer.parseInt(dc[1].trim());
+                    return 0;
+                }
                 if (f[1].equals("addButton")) {
                     String[] xy = f[2].split(",");
                     addButtonPos = new java.awt.Point(Integer.parseInt(xy[0].trim()), Integer.parseInt(xy[1].trim()));
@@ -463,6 +508,8 @@ public class DataStore {
         out.add("SETTING|widgetOpacity|" + widgetOpacity);
         out.add("SETTING|solidText|" + solidText);
         out.add("SETTING|style|" + style.name());
+        out.add("SETTING|focus|" + focusStudyMinutes + "," + focusBreakMinutes);
+        out.add("SETTING|focusDone|" + focusDate + "," + focusDoneToday);
         if (addButtonPos != null) {
             out.add("SETTING|addButton|" + addButtonPos.x + "," + addButtonPos.y);
         }
