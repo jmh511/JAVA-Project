@@ -581,6 +581,63 @@ public class BoardPanel extends JPanel {
         return false;
     }
 
+    /**
+     * Widgets must not lie on desktop icons. Each widget that does is moved (sliding) to the
+     * nearest free cells without icons, at the same size if possible, otherwise smaller down
+     * to its minimum. If there is no room at all it stays (the frame then cuts a hole).
+     */
+    public void moveWidgetsOffIcons() {
+        if (iconCells.isEmpty()) {
+            return;
+        }
+        for (WidgetPanel w : new ArrayList<>(widgets)) {
+            Rectangle now = w.getGridRect();
+            if (!coversIcons(now)) {
+                continue;
+            }
+            Rectangle best = nearestFreeSpot(w, now);
+            if (best == null) {
+                continue;
+            }
+            Rectangle from = w.getBounds();
+            Rectangle to = EditOverlay.cellsToPixels(best);
+            w.setGrid(best); // reserve the cells right away, so the next widget does not take them
+            w.setBounds(from);
+            SnapAnimator.animate(from, to, r -> {
+                w.setBounds(r);
+                w.revalidate();
+            }, () -> w.setGrid(best));
+        }
+    }
+
+    /** Closest cells (to 'now') where the widget fits without covering icons, or null. */
+    private Rectangle nearestFreeSpot(WidgetPanel w, Rectangle now) {
+        WidgetType t = w.getType();
+        for (int h = now.height; h >= t.getMinRows(); h--) {
+            for (int wd = now.width; wd >= t.getMinCols(); wd--) {
+                Rectangle best = null;
+                int bestDistance = Integer.MAX_VALUE;
+                for (int r = 0; r + h <= rows; r++) {
+                    for (int c = 0; c + wd <= cols; c++) {
+                        Rectangle spot = new Rectangle(c, r, wd, h);
+                        if (!fits(spot, w) || coversIcons(spot)) {
+                            continue;
+                        }
+                        int d = Math.abs(c - now.x) + Math.abs(r - now.y);
+                        if (d < bestDistance) {
+                            best = spot;
+                            bestDistance = d;
+                        }
+                    }
+                }
+                if (best != null) {
+                    return best;
+                }
+            }
+        }
+        return null;
+    }
+
     /** Re-places the current widgets (keeping positions where possible), e.g. after the grid changed. */
     public List<WidgetType> relayout() {
         List<WidgetType> skipped = rearrange(currentLayouts());

@@ -222,24 +222,14 @@ public class BoardFrame extends JFrame {
         if (!embedded) {
             return;
         }
-        List<Rectangle> icons = currentIcons();
-        List<Rectangle> solid = solidParts();
-        if (store.isGridMatched()) {
-            // The board is fixed on the desktop grid: never move it, only keep icons visible.
-            board.setIconCells(iconCells(DesktopEmbedder.iconBounds()));
-            applyHoles(icons, solid);
-            return;
+        // The board itself may lie over desktop files; only the widgets must not cover them.
+        // 1. find the cells that hold an icon, 2. move widgets off those cells (nearest free
+        // cells), 3. if a widget has nowhere to go, cut a hole so the icon still shows.
+        board.setIconCells(iconCells(DesktopEmbedder.iconBounds()));
+        if (!board.isEditMode()) {
+            board.moveWidgetsOffIcons();
         }
-        if (coveredArea(getLocation(), solid, icons) > 0) {
-            Point target = findSpot(icons, true, solid, getWidth(), getHeight());
-            if (target == null && mayMoveToLeastCovered) {
-                target = findSpot(icons, false, solid, getWidth(), getHeight());
-            }
-            if (target != null) {
-                setLocation(target);
-            }
-        }
-        applyHoles(icons, solid);
+        applyHoles(currentIcons(), solidParts());
     }
 
     /**
@@ -422,20 +412,61 @@ public class BoardFrame extends JFrame {
 
     /** Cells (of the matched grid, relative to the board) that hold a desktop icon. */
     private Set<Point> iconCells(List<Rectangle> icons) {
-        return iconCellsAt(icons, getX(), getY(), Theme.cellW(), Theme.cellH());
+        Point origin = board.isShowing() ? board.getLocationOnScreen() : getLocation();
+        return iconCellsAt(icons, origin.x, origin.y, Theme.cellW(), Theme.cellH());
     }
 
+    /**
+     * Board cells (relative to the board at gx, gy) that an icon lies on. The icon's area is
+     * shrunk a little first, so an icon that only touches a neighbouring cell does not block it.
+     * With a matched grid every icon lands in exactly one cell.
+     */
     private static Set<Point> iconCellsAt(List<Rectangle> icons, int gx, int gy, int cw, int ch) {
         Set<Point> cells = new HashSet<>();
         for (Rectangle r : icons) {
-            // The icon's center decides its cell.
-            int cx = r.x + r.width / 2 - gx;
-            int cy = r.y + r.height / 2 - gy;
-            if (cx >= 0 && cy >= 0) {
-                cells.add(new Point(cx / cw, cy / ch));
+            int x0 = r.x + r.width / 5 - gx;
+            int y0 = r.y + r.height / 5 - gy;
+            int x1 = r.x + r.width * 4 / 5 - gx;
+            int y1 = r.y + r.height * 4 / 5 - gy;
+            if (x1 < 0 || y1 < 0) {
+                continue;
+            }
+            for (int cx = Math.max(0, x0) / cw; cx <= x1 / cw; cx++) {
+                for (int cy = Math.max(0, y0) / ch; cy <= y1 / ch; cy++) {
+                    cells.add(new Point(cx, cy));
+                }
             }
         }
         return cells;
+    }
+
+    /**
+     * Before the board is moved the first time: take over the desktop icon grid (cell size =
+     * icon spacing, positions on icon slots), keeping the board about the same size on screen.
+     * After that, moving the board snaps to icon slots (see snapToGrid).
+     */
+    public void adoptIconGrid() {
+        if (!embedded || store.isGridMatched()) {
+            return;
+        }
+        List<Rectangle> icons = DesktopEmbedder.iconBounds();
+        if (icons.isEmpty()) {
+            return;
+        }
+        Rectangle area = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+        Rectangle first = icons.get(0);
+        int cw = first.width;
+        int ch = first.height;
+        int cols = Math.max(2, Math.round(board.getWidth() / (float) cw));
+        int rows = Math.max(3, Math.round(board.getHeight() / (float) ch));
+        Theme.setCellSize(cw, ch);
+        store.setCellSize(cw, ch, true);
+        store.setGridOrigin(new Point(area.x + Math.floorMod(first.x - area.x, cw),
+                area.y + Math.floorMod(first.y - area.y, ch)));
+        board.setBoardSize(cols, rows);
+        holes = Collections.emptyList();
+        board.setHoles(holes);
+        pack();
     }
 
     /** tellUser = false for automatic sizing: then no message box interrupts the user. */

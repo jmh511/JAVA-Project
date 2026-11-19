@@ -247,6 +247,7 @@ public class EditOverlay extends JComponent {
     private void releaseBoardMove() {
         windowPress = null;
         BoardFrame frame = board.getFrame();
+        frame.adoptIconGrid(); // first move: cells become the desktop icon grid
         Point snapped = frame.snapToGrid(frame.getLocation());
         animating = true;
         Rectangle from = new Rectangle(frame.getLocation(), new Dimension(0, 0));
@@ -294,7 +295,7 @@ public class EditOverlay extends JComponent {
             target.setVisible(true);
         }
         previewCells = lifted ? null : snap(target.getBounds());
-        previewValid = previewCells != null && board.fits(previewCells, target);
+        previewValid = previewCells != null && board.fits(previewCells, target) && !board.coversIcons(previewCells);
         repaint();
     }
 
@@ -376,7 +377,7 @@ public class EditOverlay extends JComponent {
         }
         disposeGhost();
         Rectangle snapped = snap(w.getBounds());
-        Rectangle cells = board.fits(snapped, w) ? snapped : startCells;
+        Rectangle cells = board.fits(snapped, w) && !board.coversIcons(snapped) ? snapped : startCells; // never onto desktop icons
         target = null;
         previewCells = null;
         animating = true;
@@ -462,7 +463,7 @@ public class EditOverlay extends JComponent {
         int[][] sizes = {{type.getDefaultCols(), type.getDefaultRows()}, {type.getMinCols(), type.getMinRows()}};
         for (int[] s : sizes) {
             Rectangle r = candidate(type, boardPoint, s[0], s[1]);
-            if (r.width <= board.getCols() && r.height <= board.getRows() && board.fits(r, null)) {
+            if (r.width <= board.getCols() && r.height <= board.getRows() && board.fits(r, null) && !board.coversIcons(r)) {
                 return r;
             }
         }
