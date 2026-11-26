@@ -83,6 +83,21 @@ public final class DesktopEmbedder {
         }
     }
 
+    /** See DesktopHost.beginKeyboardInput. Never throws. */
+    public static boolean beginKeyboardInput() {
+        try {
+            return host != null && host.beginKeyboardInput();
+        } catch (RuntimeException | LinkageError e) {
+            return false;
+        }
+    }
+
+    public static void endKeyboardInput() {
+        if (host != null) {
+            host.endKeyboardInput();
+        }
+    }
+
     /** Desktop icon rectangles, so the board can stay off the user's files. Never throws. */
     public static java.util.List<java.awt.Rectangle> iconBounds() {
         if (host == null) {

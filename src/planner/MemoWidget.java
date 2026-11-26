@@ -27,8 +27,8 @@ import javax.swing.event.DocumentListener;
  * so several memos can be on the board. Typing is saved about one second after it stops,
  * when the memo loses focus, and when the program exits.
  *
- * On the desktop the board window never takes keyboard focus (so it does not jump above other
- * windows); there a click on the memo opens a small editor window instead.
+ * On the desktop the board window normally never takes keyboard focus (so it does not jump
+ * above other windows); a click on a memo lets it take keys until another window is used.
  */
 public class MemoWidget extends WidgetPanel {
 
@@ -95,15 +95,22 @@ public class MemoWidget extends WidgetPanel {
                 push();
             }
         });
-        // On the desktop the board cannot get keys: edit in a small window instead.
+        // On the desktop the board normally never takes keys. A click on the memo lets it take
+        // them until the user goes to another window; only if that fails, a small editor opens.
         area.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                boolean viaDialog = needsEditorWindow();
-                area.setEditable(!viaDialog);
-                if (viaDialog && SwingUtilities.isLeftMouseButton(e)) {
-                    e.consume();
-                    SwingUtilities.invokeLater(() -> openEditor());
+                if (!SwingUtilities.isLeftMouseButton(e)) {
+                    return;
+                }
+                Window w = SwingUtilities.getWindowAncestor(MemoWidget.this);
+                if (w instanceof BoardFrame && ((BoardFrame) w).isEmbedded()) {
+                    boolean direct = ((BoardFrame) w).beginTyping(area);
+                    area.setEditable(direct);
+                    if (!direct) {
+                        e.consume();
+                        SwingUtilities.invokeLater(() -> openEditor());
+                    }
                 }
             }
         });
@@ -139,12 +146,6 @@ public class MemoWidget extends WidgetPanel {
         for (MemoWidget w : new ArrayList<>(LIVE)) {
             w.push();
         }
-    }
-
-    /** True when this memo is on the desktop board, which never gets keyboard focus. */
-    private boolean needsEditorWindow() {
-        Window w = SwingUtilities.getWindowAncestor(this);
-        return w instanceof BoardFrame && ((BoardFrame) w).isEmbedded();
     }
 
     private void openEditor() {

@@ -21,6 +21,18 @@ public interface DesktopHost {
     /** Raises the board above other windows (without activating it). */
     void bringForward();
 
+    /**
+     * Lets the board take keyboard input for a moment (typing in a memo): the board may be
+     * activated, but stays at the bottom. Returns false if that is not possible.
+     */
+    default boolean beginKeyboardInput() {
+        return false;
+    }
+
+    /** Back to normal: clicking the board never activates it. */
+    default void endKeyboardInput() {
+    }
+
     /** Screen bounds of the desktop icons (in Java screen coordinates). Empty if unknown. */
     java.util.List<java.awt.Rectangle> desktopIconBounds();
 }

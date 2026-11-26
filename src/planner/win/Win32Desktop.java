@@ -79,6 +79,9 @@ public final class Win32Desktop implements DesktopHost {
     private final MethodHandle getWindow;
     private final MethodHandle setWindowPos;
     private final MethodHandle isWindow;
+    private final MethodHandle setForegroundWindow;
+    /** True while a memo on the board is being typed in (WS_EX_NOACTIVATE is off then). */
+    private volatile boolean typing;
 
     private MemorySegment board = MemorySegment.NULL;
     private MemorySegment progman = MemorySegment.NULL;
@@ -92,6 +95,7 @@ public final class Win32Desktop implements DesktopHost {
         getWindow = handle(linker, user32, "GetWindow", FunctionDescriptor.of(A, A, I));
         setWindowPos = handle(linker, user32, "SetWindowPos", FunctionDescriptor.of(I, A, A, I, I, I, I, I));
         isWindow = handle(linker, user32, "IsWindow", FunctionDescriptor.of(I, A));
+        setForegroundWindow = handle(linker, user32, "SetForegroundWindow", FunctionDescriptor.of(I, A));
         findWindowEx = handle(linker, user32, "FindWindowExW", FunctionDescriptor.of(A, A, A, A, A));
         isWindowVisible = handle(linker, user32, "IsWindowVisible", FunctionDescriptor.of(I, A));
         sendMessage = handle(linker, user32, "SendMessageW", FunctionDescriptor.of(J, A, I, J, J));
@@ -154,9 +158,46 @@ public final class Win32Desktop implements DesktopHost {
      * above other windows. Buttons and checkboxes still receive the clicks.
      */
     private void ensureNoActivate() throws Throwable {
+        if (typing) {
+            return; // switched off on purpose while typing in a memo
+        }
         long ex = (long) getWindowLongPtr.invoke(board, GWL_EXSTYLE);
         if ((ex & WS_EX_NOACTIVATE) == 0) {
             setWindowLongPtr.invoke(board, GWL_EXSTYLE, ex | WS_EX_NOACTIVATE);
+        }
+    }
+
+    /**
+     * Typing in a memo: without WS_EX_NOACTIVATE the board can become the active window and get
+     * keys. It is activated (allowed, because the user just clicked it) and then put back at the
+     * bottom, so it does not cover other windows.
+     */
+    @Override
+    public boolean beginKeyboardInput() {
+        try {
+            typing = true;
+            long ex = (long) getWindowLongPtr.invoke(board, GWL_EXSTYLE);
+            setWindowLongPtr.invoke(board, GWL_EXSTYLE, ex & ~WS_EX_NOACTIVATE);
+            int ok = (int) setForegroundWindow.invoke(board);
+            sendToBack();
+            if (ok == 0) {
+                endKeyboardInput();
+                return false;
+            }
+            return true;
+        } catch (Throwable t) {
+            endKeyboardInput();
+            return false;
+        }
+    }
+
+    @Override
+    public void endKeyboardInput() {
+        typing = false;
+        try {
+            ensureNoActivate();
+        } catch (Throwable t) {
+            System.err.println("[Win32Desktop] Cannot restore WS_EX_NOACTIVATE: " + t);
         }
     }
 

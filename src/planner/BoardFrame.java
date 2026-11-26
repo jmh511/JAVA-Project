@@ -74,6 +74,7 @@ public class BoardFrame extends JFrame {
                 // Desktop mode: when the user goes to another window, drop back to the desktop layer.
                 // (Not while one of our own dialogs is open on top of the board.)
                 if (embedded && e.getOppositeWindow() == null) {
+                    endTyping();
                     DesktopEmbedder.sendToBack();
                 }
             }
@@ -205,6 +206,34 @@ public class BoardFrame extends JFrame {
 
     public boolean isEmbedded() {
         return embedded;
+    }
+
+    /** True while a memo on the desktop board takes keyboard input. */
+    private boolean typing;
+
+    /**
+     * Desktop mode: lets the board take keys so the given text field can be typed in directly.
+     * Ends when the user goes to another window. Returns false if that is not possible.
+     */
+    public boolean beginTyping(java.awt.Component field) {
+        if (!embedded) {
+            return true;
+        }
+        if (!typing) {
+            if (!DesktopEmbedder.beginKeyboardInput()) {
+                return false;
+            }
+            typing = true;
+        }
+        SwingUtilities.invokeLater(field::requestFocusInWindow);
+        return true;
+    }
+
+    private void endTyping() {
+        if (typing) {
+            typing = false;
+            DesktopEmbedder.endKeyboardInput();
+        }
     }
 
     // ------------------------------------------------------------------ staying off desktop icons
