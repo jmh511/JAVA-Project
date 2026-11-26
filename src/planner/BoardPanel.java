@@ -29,6 +29,8 @@ public class BoardPanel extends JPanel {
     private final List<WidgetPanel> widgets = new ArrayList<>();
     private final EditOverlay overlay;
     private WidgetDock dock;
+    /** Large temporary view of one widget (see ExpandView). */
+    private final ExpandView expandView;
     private boolean editMode;
     /** Board size in cells. */
     private int cols;
@@ -52,6 +54,7 @@ public class BoardPanel extends JPanel {
         setPreferredSize(new Dimension(cols * Theme.cellW(), rows * Theme.cellH()));
         setBackground(Theme.BOARD_BG);
         overlay = new EditOverlay(this);
+        expandView = new ExpandView(this);
         setComponentPopupMenu(createBoardMenu());
         store.setLayoutSupplier(this::currentLayouts);
 
@@ -336,7 +339,7 @@ public class BoardPanel extends JPanel {
         WidgetType[] order = {WidgetType.CALENDAR, WidgetType.TIMETABLE, WidgetType.TODO,
                 WidgetType.CHECKLIST, WidgetType.HIGHLIGHTS};
         for (WidgetType t : order) {
-            placeBest(t, 0, 0);
+            placeBest(t, 0, 0, 0);
         }
     }
 
@@ -352,14 +355,14 @@ public class BoardPanel extends JPanel {
             Rectangle r = new Rectangle(l.getCol(), l.getRow(),
                     Math.max(t.getMinCols(), l.getCols()), Math.max(t.getMinRows(), l.getRows()));
             if (fits(r, null) && !coversIcons(r)) {
-                addWidget(t, r.x, r.y, r.width, r.height);
+                addWidget(t, r.x, r.y, r.width, r.height, l.getRef());
             } else {
                 later.add(l);
             }
         }
         List<WidgetType> skipped = new ArrayList<>();
         for (WidgetLayout l : later) {
-            if (!placeBest(l.getType(), l.getCols(), l.getRows())) {
+            if (!placeBest(l.getType(), l.getRef(), l.getCols(), l.getRows())) {
                 skipped.add(l.getType());
             }
         }
@@ -380,19 +383,16 @@ public class BoardPanel extends JPanel {
         }
         List<WidgetLayout> bestLayouts = currentLayouts();
 
-        List<WidgetType> types = new ArrayList<>();
-        for (WidgetLayout l : layouts) {
-            types.add(l.getType());
-        }
         for (int strategy = 2; strategy <= 3; strategy++) {
             clearWidgets();
             List<WidgetType> skipped = new ArrayList<>();
-            for (WidgetType t : types) {
+            for (WidgetLayout l : layouts) {
+                WidgetType t = l.getType();
                 boolean placed;
                 if (strategy == 2) {
-                    placed = placeBest(t, 0, 0);
+                    placed = placeBest(t, l.getRef(), 0, 0);
                 } else {
-                    placed = placeBest(t, t.getMinCols(), t.getMinRows());
+                    placed = placeBest(t, l.getRef(), t.getMinCols(), t.getMinRows());
                 }
                 if (!placed) {
                     skipped.add(t);
@@ -414,14 +414,14 @@ public class BoardPanel extends JPanel {
      * Puts a widget at the first free spot, trying the wanted (or default) size first and then
      * smaller sizes down to the widget's minimum. Returns false if it does not fit anywhere.
      */
-    private boolean placeBest(WidgetType t, int wantCols, int wantRows) {
+    private boolean placeBest(WidgetType t, long ref, int wantCols, int wantRows) {
         int startCols = Math.max(t.getMinCols(), wantCols > 0 ? wantCols : t.getDefaultCols());
         int startRows = Math.max(t.getMinRows(), wantRows > 0 ? wantRows : t.getDefaultRows());
         for (int h = Math.min(startRows, rows); h >= t.getMinRows(); h--) {
             for (int w = Math.min(startCols, cols); w >= t.getMinCols(); w--) {
                 Point p = findFreeSpot(w, h);
                 if (p != null) {
-                    addWidget(t, p.x, p.y, w, h);
+                    addWidget(t, p.x, p.y, w, h, ref);
                     return true;
                 }
             }
@@ -451,7 +451,13 @@ public class BoardPanel extends JPanel {
     }
 
     public WidgetPanel addWidget(WidgetType type, int col, int row, int cols, int rows) {
-        WidgetPanel w = createWidget(type);
+        return addWidget(type, col, row, cols, rows, 0);
+    }
+
+    /** ref: the widget's own data (memo id); 0 makes a new memo for a memo widget. */
+    public WidgetPanel addWidget(WidgetType type, int col, int row, int cols, int rows, long ref) {
+        WidgetPanel w = newWidget(type, ref);
+        w.setExpandAction(() -> expandView.open(w), false);
         w.setOpacity(store.getWidgetOpacity() / 100f);
         w.setSolidText(store.isSolidText());
         w.setComponentPopupMenu(createWidgetMenu(w));
@@ -500,6 +506,41 @@ public class BoardPanel extends JPanel {
         }
     }
 
+    /**
+     * Removes a widget because the user deleted it (edit mode). A memo's text is deleted with it,
+     * after asking when it is not empty. Returns false when the user said no.
+     */
+    public boolean deleteWidgetByUser(WidgetPanel w) {
+        if (w instanceof MemoWidget) {
+            if (!confirmMemoDelete((MemoWidget) w)) {
+                return false;
+            }
+            long id = w.getRef();
+            removeWidget(w);
+            PipWindow.closeIfShowing(WidgetType.MEMO, id);
+            store.removeMemo(id);
+            return true;
+        }
+        removeWidget(w);
+        return true;
+    }
+
+    /** A memo with text is only deleted after the user agrees (its text is deleted too). */
+    public boolean confirmMemoDelete(MemoWidget memo) {
+        memo.push();
+        if (memo.getText().isBlank()) {
+            return true;
+        }
+        return javax.swing.JOptionPane.showConfirmDialog(this, "Delete this memo and its text?", "Delete memo",
+                javax.swing.JOptionPane.OK_CANCEL_OPTION, javax.swing.JOptionPane.WARNING_MESSAGE)
+                == javax.swing.JOptionPane.OK_OPTION;
+    }
+
+    /** True when the dock may add one more widget of this type (memos: always). */
+    public boolean canAdd(WidgetType type) {
+        return type.allowsMany() || !hasWidget(type);
+    }
+
     /** True if a widget of this type is on the board (each type can be added once from the dock). */
     public boolean hasWidget(WidgetType type) {
         for (WidgetPanel w : widgets) {
@@ -543,8 +584,16 @@ public class BoardPanel extends JPanel {
         }
     }
 
-    private WidgetPanel createWidget(WidgetType type) {
+    /**
+     * Creates a widget connected to the store but not placed anywhere. Used for the board and
+     * for the expanded and pop-out copies. For a memo, ref is the memo id (0 or unknown: new memo).
+     */
+    WidgetPanel newWidget(WidgetType type, long ref) {
         switch (type) {
+            case MEMO: {
+                Memo m = ref != 0 ? store.getMemo(ref) : null;
+                return new MemoWidget(store, m != null ? m.getId() : store.createMemo().getId());
+            }
             case CALENDAR: return new CalendarWidget(store);
             case TIMETABLE: return new TimetableWidget(store);
             case HIGHLIGHTS: return new HighlightsWidget(store);
@@ -687,7 +736,7 @@ public class BoardPanel extends JPanel {
         List<WidgetLayout> list = new ArrayList<>();
         for (WidgetPanel w : widgets) {
             Rectangle r = w.getGridRect();
-            list.add(new WidgetLayout(w.getType(), r.x, r.y, r.width, r.height));
+            list.add(new WidgetLayout(w.getType(), r.x, r.y, r.width, r.height, w.getRef()));
         }
         return list;
     }
@@ -704,6 +753,7 @@ public class BoardPanel extends JPanel {
         }
         editMode = on;
         if (on) {
+            expandView.close(); // no large view while the layout is edited
             overlay.setBounds(0, 0, getWidth(), getHeight());
             add(overlay);
             setComponentZOrder(overlay, 0);
@@ -731,8 +781,29 @@ public class BoardPanel extends JPanel {
         return menu;
     }
 
+    /** The widget menu is filled each time it opens, so it shows the current state (e.g. memo color). */
     private JPopupMenu createWidgetMenu(WidgetPanel w) {
         JPopupMenu menu = Menus.popup();
+        menu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+            @Override
+            public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {
+                fillWidgetMenu(menu, w);
+            }
+
+            @Override
+            public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {
+            }
+
+            @Override
+            public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) {
+            }
+        });
+        fillWidgetMenu(menu, w);
+        return menu;
+    }
+
+    private void fillWidgetMenu(JPopupMenu menu, WidgetPanel w) {
+        menu.removeAll();
         List<JMenuItem> own = w.createMenuItems();
         for (JMenuItem item : own) {
             menu.add(item);
@@ -740,8 +811,19 @@ public class BoardPanel extends JPanel {
         if (!own.isEmpty()) {
             menu.addSeparator();
         }
+        JMenuItem expand = Menus.item("Expand");
+        expand.addActionListener(e -> expandView.open(w));
+        expand.setEnabled(!editMode);
+        JMenuItem pip = Menus.item("Pop out (PIP)");
+        pip.addActionListener(e -> PipWindow.popOut(this, w));
+        menu.add(expand);
+        menu.add(pip);
+        menu.addSeparator();
         addCommonItems(menu);
-        return menu;
+    }
+
+    public ExpandView getExpandView() {
+        return expandView;
     }
 
     private void addCommonItems(JPopupMenu menu) {
@@ -776,11 +858,13 @@ public class BoardPanel extends JPanel {
     public void setWidgetStyle(Theme.Style s) {
         Theme.setStyle(s);
         store.setStyle(s);
+        expandView.close();
         List<WidgetLayout> layouts = currentLayouts();
         clearWidgets();
         for (WidgetLayout l : layouts) {
-            addWidget(l.getType(), l.getCol(), l.getRow(), l.getCols(), l.getRows());
+            addWidget(l.getType(), l.getCol(), l.getRow(), l.getCols(), l.getRows(), l.getRef());
         }
+        PipWindow.restyle(this);
         revalidate();
         repaint();
     }

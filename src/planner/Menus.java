@@ -48,6 +48,31 @@ public final class Menus {
         return new MacItem(text, true);
     }
 
+    /** Item with a round color swatch on the right; a ring marks the current choice. */
+    public static JMenuItem colorItem(String text, Color swatch, boolean selected) {
+        return new MacItem(text, false) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                int d = 14;
+                int x = getWidth() - TEXT_PAD - d;
+                int y = (getHeight() - d) / 2;
+                g2.setColor(swatch);
+                g2.fillOval(x, y, d, d);
+                g2.setColor(new Color(0, 0, 0, 50));
+                g2.drawOval(x, y, d, d);
+                if (selected) {
+                    g2.setColor(text());
+                    g2.setStroke(new java.awt.BasicStroke(1.6f));
+                    g2.drawOval(x - 3, y - 3, d + 6, d + 6);
+                }
+                g2.dispose();
+            }
+        };
+    }
+
     private static boolean dark() {
         return Theme.style() != Theme.Style.LIGHT;
     }
@@ -129,7 +154,7 @@ public final class Menus {
 
     // ------------------------------------------------------------------ items
 
-    private static final class MacItem extends JMenuItem {
+    private static class MacItem extends JMenuItem {
         private final boolean danger;
 
         MacItem(String text, boolean danger) {

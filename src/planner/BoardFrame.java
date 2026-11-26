@@ -110,7 +110,11 @@ public class BoardFrame extends JFrame {
         root.getActionMap().put("finishEdit", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                board.setEditMode(false);
+                if (board.getExpandView().isOpen()) {
+                    board.getExpandView().close();
+                } else {
+                    board.setEditMode(false);
+                }
             }
         });
 
@@ -652,6 +656,7 @@ public class BoardFrame extends JFrame {
         exit.addActionListener(e -> exitApp());
         menu.add(edit);
         menu.add(show);
+        menu.add(PipWindow.trayItem());
         menu.addSeparator();
         menu.add(exit);
 
@@ -674,6 +679,8 @@ public class BoardFrame extends JFrame {
 
     /** Saves everything and quits. */
     public void exitApp() {
+        MemoWidget.flushAll(); // typing that was not saved yet
+        PipWindow.saveAndHide();
         store.save();
         if (trayIcon != null) {
             SystemTray.getSystemTray().remove(trayIcon);

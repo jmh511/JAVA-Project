@@ -69,5 +69,6 @@ public class Main {
         }
         frame.setVisible(true);
         frame.startDesktopMode();
+        PipWindow.restore(frame.getBoard()); // pop-out window from last time, if any
     }
 }

@@ -163,7 +163,7 @@ public class WidgetDock extends JWindow {
                 @Override
                 public void mousePressed(MouseEvent e) {
                     WidgetType t = typeAt(e.getPoint());
-                    if (SwingUtilities.isLeftMouseButton(e) && t != null && !board.hasWidget(t)) {
+                    if (SwingUtilities.isLeftMouseButton(e) && t != null && board.canAdd(t)) {
                         startDrag(t, e);
                     }
                 }
@@ -188,6 +188,9 @@ public class WidgetDock extends JWindow {
                     if (t == null) {
                         setToolTipText(null);
                         setCursor(Cursor.getDefaultCursor());
+                    } else if (t.allowsMany()) {
+                        setToolTipText("Drag onto the board to add a memo (you can add several)");
+                        setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
                     } else if (board.hasWidget(t)) {
                         setToolTipText(t.getTitle() + " is on the board. Drag it here to remove it.");
                         setCursor(Cursor.getDefaultCursor());
@@ -259,7 +262,7 @@ public class WidgetDock extends JWindow {
                 boolean onBoard = board.hasWidget(types[i]);
                 boolean dragging = types[i] == dragType;
                 Graphics2D gi = (Graphics2D) g2.create();
-                if (onBoard || dragging) {
+                if ((onBoard && !types[i].allowsMany()) || dragging) {
                     gi.setComposite(AlphaComposite.SrcOver.derive(0.4f));
                 }
                 paintIcon(gi, types[i], ix, 10, ICON);
@@ -383,6 +386,21 @@ public class WidgetDock extends JWindow {
                     py[i] = s * py[i] / 100;
                 }
                 g2.drawPolyline(px, py, px.length);
+                break;
+            }
+            case MEMO: {
+                // yellow sticky note with a few lines of writing
+                g2.setPaint(new GradientPaint(0, 0, new Color(0xFFE873), 0, s, new Color(0xFFCC00)));
+                g2.fillRoundRect(0, 0, s, s - 1, arc, arc);
+                g2.setColor(new Color(0xFFF6C2));
+                int m = s * 20 / 100;
+                g2.fillRoundRect(m, m, s - 2 * m, s - 2 * m, s / 10, s / 10);
+                g2.setColor(new Color(0xC9A400));
+                g2.setStroke(new BasicStroke(Math.max(1.5f, s / 30f), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                for (int i = 0; i < 3; i++) {
+                    int ly = s * (36 + i * 14) / 100;
+                    g2.drawLine(s * 30 / 100, ly, s * (i == 2 ? 55 : 70) / 100, ly);
+                }
                 break;
             }
             default: { // TODO

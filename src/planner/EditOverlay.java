@@ -405,13 +405,24 @@ public class EditOverlay extends JComponent {
         previewCells = null;
         animating = true;
         WidgetDock dock = board.getDock();
-        if (overDock && dock != null) {
+        boolean remove = overDock && dock != null;
+        if (remove && w instanceof MemoWidget) {
+            remove = board.confirmMemoDelete((MemoWidget) w); // "no": it flies back to its place
+        }
+        if (remove) {
             overDock = false;
             Rectangle into = new Rectangle(dock.getX() + dock.getWidth() / 2 - 6, dock.getY() + 24, 12, 12);
             SnapAnimator.animate(g.getBounds(), into, g::setBounds, () -> {
                 g.dispose();
                 dock.setRemoveHover(false);
-                board.removeWidget(w);
+                if (w instanceof MemoWidget) {
+                    long id = w.getRef();
+                    board.removeWidget(w);
+                    PipWindow.closeIfShowing(WidgetType.MEMO, id);
+                    board.getStore().removeMemo(id);
+                } else {
+                    board.removeWidget(w);
+                }
                 animating = false;
                 repaint();
             });
@@ -515,7 +526,7 @@ public class EditOverlay extends JComponent {
         if (w != null) {
             JMenuItem remove = Menus.item("Remove " + w.getType().getTitle() + " widget");
             remove.addActionListener(ev -> {
-                board.removeWidget(w);
+                board.deleteWidgetByUser(w);
                 repaint();
             });
             menu.add(remove);

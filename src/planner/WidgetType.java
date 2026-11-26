@@ -1,7 +1,7 @@
 package planner;
 
 /**
- * The five widget kinds with their title, minimum size and default size (in cells).
+ * The widget kinds with their title, minimum size and default size (in cells).
  */
 public enum WidgetType {
     CALENDAR("Calendar", 2, 2, 3, 3),
@@ -10,7 +10,8 @@ public enum WidgetType {
     CHECKLIST("Checklist", 1, 2, 3, 3),
     TODO("To-do", 1, 2, 3, 3),
     FOCUS("Focus", 2, 2, 3, 3),
-    SYSTEM("System", 2, 2, 3, 3);
+    SYSTEM("System", 2, 2, 3, 3),
+    MEMO("Memo", 1, 1, 2, 2);
 
     private final String title;
     private final int minCols;
@@ -44,5 +45,10 @@ public enum WidgetType {
 
     public int getDefaultRows() {
         return defaultRows;
+    }
+
+    /** True for widgets that keep their own content, so several can be on the board at once. */
+    public boolean allowsMany() {
+        return this == MEMO;
     }
 }

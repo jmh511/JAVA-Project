@@ -39,7 +39,13 @@ public abstract class WidgetPanel extends JPanel implements DataStore.Listener {
     private boolean placed;
 
     protected final JLabel titleLabel;
+    /** Title row: title on the left, small tool buttons on the right. */
+    protected final JPanel header;
     private final JPanel headerTools;
+    /** Expand (or, on an expanded copy, collapse) button; drawn only when it can be used. */
+    private final IconButton expandButton;
+    private Runnable expandAction;
+    private boolean expandedCopy;
     /** Content area below the header. Subclasses put their content here. */
     protected final JPanel body;
 
@@ -53,13 +59,33 @@ public abstract class WidgetPanel extends JPanel implements DataStore.Listener {
         setOpaque(false);
         setBorder(new EmptyBorder(7, 10, 8, 8));
 
-        JPanel header = new JPanel(new BorderLayout());
+        header = new JPanel(new BorderLayout());
         header.setOpaque(false);
         titleLabel = Theme.label(type.getTitle(), Theme.TITLE, Theme.wText);
         headerTools = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         headerTools.setOpaque(false);
         header.add(titleLabel, BorderLayout.CENTER);
         header.add(headerTools, BorderLayout.EAST);
+        expandButton = new IconButton(IconButton.Kind.EXPAND, "Expand", Theme.wMuted, () -> {
+            if (expandAction != null) {
+                expandAction.run();
+            }
+        });
+        expandButton.setShownWhen(this::expandButtonShown);
+        headerTools.add(expandButton);
+        // Double-click on the title row: same as the expand button.
+        java.awt.event.MouseAdapter headerClicks = new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)
+                        && expandAction != null && !inEditMode()) {
+                    expandAction.run();
+                }
+            }
+        };
+        header.addMouseListener(headerClicks);
+        titleLabel.addMouseListener(headerClicks);
+        installHoverTracking();
 
         body = new JPanel(new BorderLayout());
         body.setOpaque(false);
@@ -71,7 +97,85 @@ public abstract class WidgetPanel extends JPanel implements DataStore.Listener {
     }
 
     protected void addHeaderTool(JComponent c) {
-        headerTools.add(c);
+        headerTools.add(c, headerTools.getComponentCount() - 1); // the expand button stays last
+    }
+
+    // ------------------------------------------------------------------ expand button
+
+    /**
+     * What the expand button (and a double-click on the title row) does. On the board it opens
+     * the large view; on the large copy itself it closes it (collapse look). null hides the button.
+     */
+    public void setExpandAction(Runnable action, boolean isExpandedCopy) {
+        expandAction = action;
+        expandedCopy = isExpandedCopy;
+        expandButton.setToolTipText(isExpandedCopy ? "Back to normal size (Esc)" : "Expand");
+        if (isExpandedCopy) {
+            expandButton.setKindCollapse();
+        }
+        expandButton.repaint();
+    }
+
+    /** True while the board is in edit mode (expanding is off then). */
+    protected boolean inEditMode() {
+        return getParent() instanceof BoardPanel && ((BoardPanel) getParent()).isEditMode();
+    }
+
+    private boolean expandButtonShown() {
+        if (expandAction == null) {
+            return false;
+        }
+        return expandedCopy || (hovered == this && !inEditMode());
+    }
+
+    /** Widget under the mouse pointer (only its expand button is drawn). */
+    private static WidgetPanel hovered;
+    private static boolean hoverInstalled;
+
+    private static void installHoverTracking() {
+        if (hoverInstalled) {
+            return;
+        }
+        hoverInstalled = true;
+        java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(ev -> {
+            if (!(ev instanceof java.awt.event.MouseEvent)) {
+                return;
+            }
+            java.awt.event.MouseEvent e = (java.awt.event.MouseEvent) ev;
+            Component c = e.getComponent();
+            WidgetPanel w = c instanceof WidgetPanel ? (WidgetPanel) c
+                    : (WidgetPanel) SwingUtilities.getAncestorOfClass(WidgetPanel.class, c);
+            if (e.getID() == java.awt.event.MouseEvent.MOUSE_EXITED) {
+                if (hovered != null && hovered.isShowing()) {
+                    Rectangle r = new Rectangle(hovered.getLocationOnScreen(), hovered.getSize());
+                    if (!r.contains(e.getLocationOnScreen())) {
+                        setHovered(null);
+                    }
+                }
+            } else if (e.getID() == java.awt.event.MouseEvent.MOUSE_ENTERED
+                    || e.getID() == java.awt.event.MouseEvent.MOUSE_MOVED) {
+                setHovered(w);
+            }
+        }, java.awt.AWTEvent.MOUSE_EVENT_MASK | java.awt.AWTEvent.MOUSE_MOTION_EVENT_MASK);
+    }
+
+    private static void setHovered(WidgetPanel w) {
+        if (w == hovered) {
+            return;
+        }
+        WidgetPanel old = hovered;
+        hovered = w;
+        if (old != null) {
+            old.expandButton.repaint();
+        }
+        if (w != null) {
+            w.expandButton.repaint();
+        }
+    }
+
+    /** Id of the widget's own data (a memo), or 0 for widgets that show the shared data. */
+    public long getRef() {
+        return 0;
     }
 
     /** 0..1, applied to the whole widget (card, text, controls) at once. */
@@ -115,7 +219,7 @@ public abstract class WidgetPanel extends JPanel implements DataStore.Listener {
             int b = p & 0xFF;
             int brightness = (r * 299 + g * 587 + b * 114) / 1000;
             // Light style: dark pixels are text. Dark and Liquid Glass: bright pixels are text.
-            float ink = Theme.lightInk()
+            float ink = brightTextOnDark()
                     ? Math.max(0f, Math.min(1f, (brightness - 110) / 80f))
                     : Math.max(0f, Math.min(1f, (INK_LIGHT - brightness) / range));
             // Strongly colored pixels (blue / red text, accents) count as text in every style.
@@ -128,6 +232,11 @@ public abstract class WidgetPanel extends JPanel implements DataStore.Listener {
             int newA = Math.round(a * (opacity + (1f - opacity) * ink));
             px[i] = (newA << 24) | (p & 0x00FFFFFF);
         }
+    }
+
+    /** True when the text is lighter than the card (Dark and Liquid Glass); memos keep dark text. */
+    protected boolean brightTextOnDark() {
+        return Theme.lightInk();
     }
 
     /** True when parts of this widget must not be repainted on their own (see WidgetRepaintManager). */

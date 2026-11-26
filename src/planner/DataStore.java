@@ -24,6 +24,10 @@ import java.util.function.Supplier;
  *   TODO|id|title|2026-11-20|false
  *   CHECK|id|title|2026-11-12|false
  *   LAYOUT|CALENDAR|0|0|3|3
+ *   LAYOUT|MEMO|3|0|2|2|42             (the last field links a memo widget to its memo)
+ *   MEMO|42|YELLOW|1795000000000|text  (id, color, last change in ms, escaped text)
+ *   PIP|MEMO|42|1500|300|RIGHT|false   (widget in the pop-out window: type, ref, x, y, edge, pinned)
+ * Unknown or broken lines are skipped, so older files still load.
  */
 public class DataStore {
 
@@ -38,7 +42,10 @@ public class DataStore {
     private final List<Event> events = new ArrayList<>();
     private final List<Todo> todos = new ArrayList<>();
     private final List<ChecklistItem> checklist = new ArrayList<>();
+    private final List<Memo> memos = new ArrayList<>();
     private List<WidgetLayout> layouts = new ArrayList<>();
+    /** Widget shown in the pop-out (PIP) window, or null when there is none. */
+    private PipState pip;
     private int timetableStartHour = 0;
     private int timetableEndHour = 24;
     private long nextId = 1;
@@ -205,6 +212,85 @@ public class DataStore {
         }
         list.sort(Comparator.comparingLong(ChecklistItem::getId));
         return list;
+    }
+
+    // ------------------------------------------------------------------ memos
+
+    /** New empty memo (yellow). Each memo widget gets its own. */
+    public Memo createMemo() {
+        Memo m = new Memo(nextId++, "", Theme.MEMO_COLOR_NAMES[0], System.currentTimeMillis());
+        memos.add(m);
+        save();
+        return m;
+    }
+
+    /** The memo with this id, or null. */
+    public Memo getMemo(long id) {
+        for (Memo m : memos) {
+            if (m.getId() == id) {
+                return m;
+            }
+        }
+        return null;
+    }
+
+    /** Called after typing pauses (not on every key). Other views of the same memo are updated. */
+    public void setMemoText(Memo m, String text) {
+        if (!m.getText().equals(text)) {
+            m.setText(text);
+            changed();
+        }
+    }
+
+    public void setMemoColor(Memo m, String color) {
+        if (!m.getColor().equals(color)) {
+            m.setColor(color);
+            changed();
+        }
+    }
+
+    /** Deletes the memo's text for good (used when its widget is deleted). */
+    public void removeMemo(long id) {
+        if (memos.removeIf(m -> m.getId() == id)) {
+            changed();
+        }
+    }
+
+    // ------------------------------------------------------------------ pop-out window
+
+    /** What the pop-out (PIP) window shows and where it is. */
+    public static final class PipState {
+        public final WidgetType type;
+        public final long ref;
+        public final int x;
+        public final int y;
+        /** LEFT, RIGHT or NONE: the screen edge the window is docked to. */
+        public final String edge;
+        public final boolean pinned;
+
+        public PipState(WidgetType type, long ref, int x, int y, String edge, boolean pinned) {
+            this.type = type;
+            this.ref = ref;
+            this.x = x;
+            this.y = y;
+            this.edge = edge;
+            this.pinned = pinned;
+        }
+    }
+
+    public PipState getPip() {
+        return pip;
+    }
+
+    /** null = no pop-out window. Saved immediately, no listeners are notified. */
+    public void setPip(PipState state) {
+        pip = state;
+        save();
+    }
+
+    /** Number of registered listeners (used to check that closed views unregister). */
+    public int listenerCount() {
+        return listeners.size();
     }
 
     // ------------------------------------------------------------------ settings / layout
@@ -484,8 +570,21 @@ public class DataStore {
                 return id;
             }
             case "LAYOUT": {
+                long ref = f.length > 6 && !f[6].isEmpty() ? Long.parseLong(f[6]) : 0;
                 loadedLayouts.add(new WidgetLayout(WidgetType.valueOf(f[1]), Integer.parseInt(f[2]),
-                        Integer.parseInt(f[3]), Integer.parseInt(f[4]), Integer.parseInt(f[5])));
+                        Integer.parseInt(f[3]), Integer.parseInt(f[4]), Integer.parseInt(f[5]), ref));
+                return 0;
+            }
+            case "MEMO": {
+                long id = Long.parseLong(f[1]);
+                String color = Theme.isMemoColor(f[2]) ? f[2] : Theme.MEMO_COLOR_NAMES[0];
+                memos.add(new Memo(id, unescape(f[4]), color, Long.parseLong(f[3])));
+                return id;
+            }
+            case "PIP": {
+                String edge = f[5].equals("LEFT") || f[5].equals("RIGHT") ? f[5] : "NONE";
+                pip = new PipState(WidgetType.valueOf(f[1]), Long.parseLong(f[2]), Integer.parseInt(f[3]),
+                        Integer.parseInt(f[4]), edge, Boolean.parseBoolean(f[6]));
                 return 0;
             }
             default:
@@ -532,9 +631,16 @@ public class DataStore {
         for (ChecklistItem c : checklist) {
             out.add("CHECK|" + c.getId() + "|" + escape(c.getTitle()) + "|" + c.getDate() + "|" + c.isDone());
         }
+        for (Memo m : memos) {
+            out.add("MEMO|" + m.getId() + "|" + m.getColor() + "|" + m.getUpdatedAt() + "|" + escape(m.getText()));
+        }
         for (WidgetLayout l : layouts) {
             out.add("LAYOUT|" + l.getType().name() + "|" + l.getCol() + "|" + l.getRow() + "|"
-                    + l.getCols() + "|" + l.getRows());
+                    + l.getCols() + "|" + l.getRows() + (l.getRef() != 0 ? "|" + l.getRef() : ""));
+        }
+        if (pip != null) {
+            out.add("PIP|" + pip.type.name() + "|" + pip.ref + "|" + pip.x + "|" + pip.y + "|"
+                    + pip.edge + "|" + pip.pinned);
         }
 
         try {

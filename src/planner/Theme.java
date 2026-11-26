@@ -99,6 +99,48 @@ public final class Theme {
     /** Corner radius of widget cards (rounder than before, like macOS widgets). */
     public static final int CARD_ARC = 24;
 
+    // ------------------------------------------------------------------ memo colors
+
+    /** Sticky-note colors offered in the memo menu (the first one is the default). */
+    public static final String[] MEMO_COLOR_NAMES = {"YELLOW", "PINK", "BLUE", "GREEN", "WHITE"};
+    private static final Color[] MEMO_COLORS = {
+        new Color(0xFFF1A8), new Color(0xFFD6E0), new Color(0xCDE8FF), new Color(0xD5F2C4), new Color(0xFAFAF7)};
+    /** Memo text stays dark: every memo color is light in every widget style. */
+    public static final Color MEMO_TEXT = new Color(0x2C2C2E);
+    public static final Color MEMO_MUTED = new Color(0x7C7466);
+
+    public static Color memoColor(String name) {
+        for (int i = 0; i < MEMO_COLOR_NAMES.length; i++) {
+            if (MEMO_COLOR_NAMES[i].equals(name)) {
+                return MEMO_COLORS[i];
+            }
+        }
+        return MEMO_COLORS[0];
+    }
+
+    public static boolean isMemoColor(String name) {
+        for (String n : MEMO_COLOR_NAMES) {
+            if (n.equals(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** "YELLOW" -> "Yellow", for menus. */
+    public static String memoColorLabel(String name) {
+        return name.charAt(0) + name.substring(1).toLowerCase(java.util.Locale.ENGLISH);
+    }
+
+    /** Solid background behind widgets in the pop-out window (it cannot be see-through). */
+    public static Color pipBackground() {
+        switch (style) {
+            case DARK: return new Color(0x161618);
+            case GLASS: return new Color(0x22343A);
+            default: return new Color(0xECECE8);
+        }
+    }
+
     static {
         setStyle(Style.LIGHT);
     }
